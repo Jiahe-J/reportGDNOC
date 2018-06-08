@@ -9,3 +9,6 @@
 
 启动Django服务器：
 >python manage.py runserver
+
+浏览网页:
+>访问 <http://127.0.0.1:8000/>
