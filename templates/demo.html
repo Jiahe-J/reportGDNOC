@@ -38,6 +38,10 @@
 
         function loadEcharts(name) {
             var url = '/options/' + name + '/';
+            var year = 2018;
+            var quarter = 1;
+
+
             if (mChart != null) {
                 mChart.clear();
             }
@@ -46,7 +50,7 @@
             $.ajax({
                 url: url,
                 type: "GET",
-                data: null,
+                data: {"year": year, "quarter": quarter},
                 dataType: "json"
             }).done(function (data) {
                 mChart.hideLoading();
