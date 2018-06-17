@@ -53,3 +53,31 @@ class TemperatureRecord(models.Model):
 
     def __str__(self):
         return 'Temperature Record'
+
+
+class MalfunctionData(models.Model):
+    city = models.CharField(db_column='City', max_length=6, blank=True, null=True)
+    profession = models.CharField(db_column='Profession', max_length=20, blank=True, null=True)
+    department = models.CharField(db_column='Department', max_length=200, blank=True, null=True)
+    malfunctionCity = models.CharField(db_column='malfunctionCity', max_length=6, blank=True, null=True)
+    receiptNumber = models.CharField(db_column='receiptNumber', primary_key=True, max_length=20)
+    receiptSerialNumber = models.CharField(db_column='receiptSerialNumber', max_length=20)
+    receiptStatus = models.CharField(db_column='receiptStatus', max_length=10, blank=True, null=True)
+    title = models.CharField(max_length=200)
+    category = models.CharField(max_length=200, blank=True, null=True)
+    distributeTime = models.DateTimeField(db_column='distributeTime')
+    processTime = models.IntegerField(db_column='processTime', blank=True, null=True)
+    hangTime = models.IntegerField(db_column='hangTime')
+    malfunctionSource = models.CharField(db_column='malfunctionSource', max_length=50, blank=True, null=True)
+    isTimeOut = models.CharField(db_column='isTimeOut', max_length=2, blank=True, null=True)
+    dutyDepartment = models.CharField(db_column='dutyDepartment', max_length=200, blank=True, null=True)
+    conclusion = models.CharField(max_length=1024, blank=True, null=True)
+    type = models.CharField(max_length=20, blank=True, null=True)
+    reasonClassification = models.CharField(db_column='reasonClassification', max_length=50, blank=True, null=True)
+    malfunctionJudgment = models.CharField(db_column='malfunctionJudgment', max_length=50, blank=True, null=True)
+    malfunctionReason = models.CharField(db_column='malfunctionReason', max_length=50, blank=True, null=True)
+    originProfession = models.CharField(db_column='originProfession', max_length=20, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'malfunction_data'
