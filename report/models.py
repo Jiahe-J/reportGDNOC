@@ -56,9 +56,9 @@ class TemperatureRecord(models.Model):
 
 
 class MalfunctionData(models.Model):
-    city = models.CharField(db_column='City', max_length=6, blank=True, null=True)
-    profession = models.CharField(db_column='Profession', max_length=20, blank=True, null=True)
-    department = models.CharField(db_column='Department', max_length=200, blank=True, null=True)
+    city = models.CharField(db_column='city', max_length=6, blank=True, null=True)
+    profession = models.CharField(db_column='profession', max_length=20, blank=True, null=True)
+    department = models.CharField(db_column='department', max_length=200, blank=True, null=True)
     malfunctionCity = models.CharField(db_column='malfunctionCity', max_length=6, blank=True, null=True)
     receiptNumber = models.CharField(db_column='receiptNumber', primary_key=True, max_length=20)
     receiptSerialNumber = models.CharField(db_column='receiptSerialNumber', max_length=20)
@@ -80,4 +80,30 @@ class MalfunctionData(models.Model):
 
     class Meta:
         managed = False
-        db_table = 'malfunction_data'
+        db_table = 'report_malfunction_data'
+
+
+class District(models.Model):
+    id = models.IntegerField(primary_key=True)
+    district = models.CharField(max_length=10, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'report_district'
+
+
+class City(models.Model):
+    city = models.CharField(max_length=10, blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'report_city'
+
+
+class DistrictCity(models.Model):
+    district = models.ForeignKey('District', models.DO_NOTHING, blank=True, null=False)
+    city = models.ForeignKey('City', models.DO_NOTHING, blank=True, null=False)
+
+    class Meta:
+        managed = False
+        db_table = 'report_district_city'
