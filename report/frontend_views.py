@@ -1,10 +1,10 @@
 # coding=utf8
 from django.http import JsonResponse
-from django.views.generic.base import TemplateView
+from django.shortcuts import render
+from django.views.generic.base import TemplateView, View
 from django_echarts.views.frontend import EChartsFrontView
 from pyecharts import Bar
-
-from utils.data_parser import deal_in_time_rate_parser
+from utils.data_parser import deal_in_time_rate_parser, parse_malfunction_data
 from .demo_data import FACTORY
 
 
@@ -93,3 +93,12 @@ class SimplePieView(EChartsFrontView):
 class WordCloudView(EChartsFrontView):
     def get_echarts_instance(self, *args, **kwargs):
         return FACTORY.create('word_cloud')
+
+
+# 测试:从前端获取文件,解析入库
+class TestView(View):
+    def post(self, request):
+        file_contents = request.FILES.getlist('excel')
+        for f in file_contents:
+            parse_malfunction_data(file_contents=f.read())
+        return render(request, 'demo.html')

@@ -34,5 +34,6 @@ urlpatterns = [
     path('options/simplePie/', frontend_views.SimplePieView.as_view()),
     path('options/wordCloud/', frontend_views.WordCloudView.as_view()),
     path('options/reportBar/', frontend_views.ReportDemoView.as_view()),
+    path('upload_file/', frontend_views.TestView.as_view())
 
 ]

@@ -40,8 +40,11 @@ def delete_former_data(year, quarter):
 
 
 # 批量导入excel数据
-def parse_malfunction_data(filename, has_repeat_data):
-    workbook = xlrd.open_workbook(filename)
+def parse_malfunction_data(filename=None, file_contents=None, has_repeat_data=False):
+    if filename:
+        workbook = xlrd.open_workbook(filename)
+    else:
+        workbook = xlrd.open_workbook(file_contents=file_contents)
     sheet = workbook.sheet_by_index(0)
     # 数据行数
     nrows = sheet.nrows
