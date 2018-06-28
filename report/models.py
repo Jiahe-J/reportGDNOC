@@ -107,3 +107,16 @@ class DistrictCity(models.Model):
     class Meta:
         managed = False
         db_table = 'report_district_city'
+
+
+class ReportStatistics(models.Model):
+    yearNum = models.SmallIntegerField(blank=True, null=True)
+    quarterNum = models.IntegerField(blank=True, null=True)
+    monthNum = models.IntegerField(blank=True, null=True)
+    city = models.CharField(max_length=10, blank=True, null=True)
+    statisticsType = models.CharField(max_length=20, blank=True, null=True)
+    result = models.IntegerField(blank=True, null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'report_statistics'
