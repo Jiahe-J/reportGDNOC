@@ -25,7 +25,7 @@ def collect_order_amount(year, quarter):
         # => <QuerySet [{'city': '东莞', 'order_amount': 1563}, {'city': '清远', 'order_amount': 2099}, {'city': '韶关', 'order_amount': 1548}, {'city': '珠海', 'order_amount': 1698}, {'city': '江门', 'order_amount': 2444}, {'city': '中山', 'order_amount': 2005}, {'city': '广州', 'order_amount': 8454}]>
         # order_admout_qureyset.filter(city='东莞').get('order_amount')
         order_amount_qureyset = MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime).values(
-            'city').annotate(order_amount=Count('city'))
+            'city').annotate(order_amount=Count('*'))
 
         # 珠1地区 Pearl River Delta 1
         prd_1_amount = get_district_order_amount(1, order_amount_qureyset)
@@ -53,8 +53,9 @@ def get_district_order_amount(district_id, order_amount_qureyset):
     for i in cities:
         amount_item = dict()
         amount_item['city'] = i
-        if order_amount_qureyset.filter(city=i):
-            amount_item['order_amount'] = order_amount_qureyset.filter(city=i)[0].get('order_amount')
+        qs = order_amount_qureyset.filter(city=i)
+        if qs:
+            amount_item['order_amount'] = qs[0].get('order_amount')
         else:
             amount_item['order_amount'] = 0
         order_amount.append(amount_item)
@@ -86,15 +87,15 @@ def collect_deal_in_time_rate(year, quarter):
             'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
         order_amount_qureyset = MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime).values(
             'city').annotate(order_amount=Count('city'))
-        prd_1_rate = get_district_deal_in_intime_rate(1, deal_in_time_qureyset, order_amount_qureyset)
+        prd_1_rate = get_district_deal_in_time_rate(1, deal_in_time_qureyset, order_amount_qureyset)
         deal_in_time_rate_dict['prd_1'] = prd_1_rate
-        prd_2_rate = get_district_deal_in_intime_rate(2, deal_in_time_qureyset, order_amount_qureyset)
+        prd_2_rate = get_district_deal_in_time_rate(2, deal_in_time_qureyset, order_amount_qureyset)
         deal_in_time_rate_dict['prd_2'] = prd_2_rate
-        gd_e_rate = get_district_deal_in_intime_rate(3, deal_in_time_qureyset, order_amount_qureyset)
+        gd_e_rate = get_district_deal_in_time_rate(3, deal_in_time_qureyset, order_amount_qureyset)
         deal_in_time_rate_dict['gd_e'] = gd_e_rate
-        gd_w_rate = get_district_deal_in_intime_rate(4, deal_in_time_qureyset, order_amount_qureyset)
+        gd_w_rate = get_district_deal_in_time_rate(4, deal_in_time_qureyset, order_amount_qureyset)
         deal_in_time_rate_dict['gd_w'] = gd_w_rate
-        gd_n_rate = get_district_deal_in_intime_rate(5, deal_in_time_qureyset, order_amount_qureyset)
+        gd_n_rate = get_district_deal_in_time_rate(5, deal_in_time_qureyset, order_amount_qureyset)
         deal_in_time_rate_dict['gd_n'] = gd_n_rate
         deal_in_time_rate_dict['status'] = 'success'
     else:
@@ -104,19 +105,21 @@ def collect_deal_in_time_rate(year, quarter):
 
 # 根据区域ID,order_deal_in_time_qureyset返回排序好的区域字典列表
 # 珠1:1,珠2:2,粤东:3,粤西:4,粤北:5
-def get_district_deal_in_intime_rate(distirct_id, deal_in_time_qureyset, order_amount_qureyset):
+def get_district_deal_in_time_rate(distirct_id, deal_in_time_qureyset, order_amount_qureyset):
     cities = get_cities_by_district_id(distirct_id)
     deal_in_time_rate_list = []
 
     for i in cities:
         deal_in_time_rate_item = dict()
         deal_in_time_rate_item['city'] = i
-        if order_amount_qureyset.filter(city=i):
-            order_amount = order_amount_qureyset.filter(city=i)[0].get('order_amount')
+        qs = order_amount_qureyset.filter(city=i)
+        if qs:
+            order_amount = qs[0].get('order_amount')
         else:
             order_amount = 1
-        if deal_in_time_qureyset.filter(city=i):
-            deal_in_time_amount = deal_in_time_qureyset.filter(city=i)[0].get('deal_in_time_amount')
+        qs1 = deal_in_time_qureyset.filter(city=i)
+        if qs1:
+            deal_in_time_amount = qs1[0].get('deal_in_time_amount')
         else:
             deal_in_time_amount = 0
         deal_in_time_rate_item['deal_in_time_rate'] = round(deal_in_time_amount / order_amount * 100, 2)

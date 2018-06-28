@@ -1,10 +1,11 @@
 # coding=utf8
+import os
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.generic.base import TemplateView, View
 from django_echarts.views.frontend import EChartsFrontView
 from pyecharts import Bar
-from utils.data_parser import deal_in_time_rate_parser, parse_malfunction_data
+from utils.data_parser import deal_in_time_rate_parser, parse_malfunction_data_xls, parse_malfunction_data_xlsx
 from .demo_data import FACTORY
 
 
@@ -100,5 +101,8 @@ class TestView(View):
     def post(self, request):
         file_contents = request.FILES.getlist('excel')
         for f in file_contents:
-            parse_malfunction_data(file_contents=f.read())
+            if os.path.splitext(f.name)[1] == '.xlsx':
+                parse_malfunction_data_xlsx(filename=f)
+            else:
+                parse_malfunction_data_xls(file_contents=f.read())
         return render(request, 'demo.html')
