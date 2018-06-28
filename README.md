@@ -1,4 +1,4 @@
-# DataEcharts
+# DataVisualization
 ###### Django with Echarts Data Visualization
 
 切换至项目目录：
@@ -10,6 +10,18 @@
 
 安装依赖包：
 >pip install -r requirements.txt
+
+修改settings.py中的数据库连接配置（电脑预先安装好MySQL）
+
+同步数据库表：
+>python manage.py makemigrations
+
+>python manage.py migrate
+
+修改test.py中的文件路径，报表数据在群里下载
+
+导入数据：
+>python manage.py test
 
 启动Django服务器：
 >python manage.py runserver
