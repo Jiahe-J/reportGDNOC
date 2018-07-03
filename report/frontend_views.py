@@ -103,6 +103,6 @@ class TestView(View):
         for f in file_contents:
             if os.path.splitext(f.name)[1] == '.xlsx':
                 parse_malfunction_data_xlsx(filename=f)
-            else:
+            if os.path.splitext(f.name)[1] == '.xls':
                 parse_malfunction_data_xls(file_contents=f.read())
         return render(request, 'demo.html')

@@ -1,10 +1,5 @@
 # coding=utf8
-
-
 from django.db import models
-from django.utils import timezone
-
-from django_echarts.datasets.managers import AxisValuesQuerySet
 
 
 class MalfunctionData(models.Model):
@@ -31,7 +26,7 @@ class MalfunctionData(models.Model):
     originProfession = models.CharField(db_column='originProfession', max_length=20, blank=True, null=True)
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'report_malfunction_data'
 
 
@@ -39,7 +34,7 @@ class District(models.Model):
     district = models.CharField(max_length=10, blank=True, null=True)
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'report_district'
 
 
@@ -47,7 +42,7 @@ class City(models.Model):
     city = models.CharField(max_length=10, blank=True, null=True)
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'report_city'
 
 
@@ -56,7 +51,7 @@ class DistrictCity(models.Model):
     city = models.ForeignKey('City', models.DO_NOTHING, blank=True, null=False)
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'report_district_city'
 
 
@@ -70,7 +65,7 @@ class StatisticsAmount(models.Model):
     result = models.IntegerField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'report_statistics_amount'
 
 
@@ -83,7 +78,7 @@ class StatisticsInTimeRate(models.Model):
     result = models.FloatField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'report_statistics_in_time_rate'
 
 
@@ -96,7 +91,7 @@ class StatisticsDealTime(models.Model):
     result = models.IntegerField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'report_statistics_deal_time'
 
 
@@ -109,7 +104,7 @@ class StatisticsOver48Rate(models.Model):
     result = models.FloatField(blank=True, null=True)
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'report_statistics_over48_rate'
 
 
@@ -123,5 +118,5 @@ class StatisticsSpecificDealTime(models.Model):
     reason = models.CharField(max_length=20, blank=True, null=True)
 
     class Meta:
-        managed = False
+        # managed = False
         db_table = 'report_statistics_specific_deal_time'

@@ -77,10 +77,10 @@ WSGI_APPLICATION = 'DataEcharts.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'DjangoEcharts',
-        'USER': 'root',
-        'PASSWORD': '123456',
-        'HOST': '127.0.0.1',
+        'NAME': 'data_echarts',
+        'USER': 'data_echarts',
+        'PASSWORD': '123456Qw!',
+        'HOST': '132.96.194.30',
     }
 }
 
