@@ -56,13 +56,15 @@ class DistrictCity(models.Model):
 
 
 class StatisticsAmount(models.Model):
+    city = models.CharField(max_length=10, blank=True, null=True)
     yearNum = models.SmallIntegerField(blank=True, null=True)
     quarterNum = models.IntegerField(blank=True, null=True)
     monthNum = models.IntegerField(blank=True, null=True)
-    city = models.CharField(max_length=10, blank=True, null=True)
+    dayNum = models.IntegerField(blank=True, null=True)
     profession = models.CharField(max_length=10, blank=True, null=True)
     statisticsType = models.CharField(max_length=20, blank=True, null=True)
     result = models.IntegerField(blank=True, null=True)
+
 
     class Meta:
         # managed = False
@@ -70,10 +72,11 @@ class StatisticsAmount(models.Model):
 
 
 class StatisticsInTimeRate(models.Model):
-    yearNum = models.SmallIntegerField(blank=True, null=True)
     city = models.TextField(blank=True, null=True)
-    monthNum = models.IntegerField(blank=True, null=True)
+    yearNum = models.SmallIntegerField(blank=True, null=True)
     quarterNum = models.IntegerField(blank=True, null=True)
+    monthNum = models.IntegerField(blank=True, null=True)
+    dayNum = models.IntegerField(blank=True, null=True)
     statisticsType = models.IntegerField(blank=True, null=True)
     result = models.FloatField(blank=True, null=True)
 
@@ -83,10 +86,11 @@ class StatisticsInTimeRate(models.Model):
 
 
 class StatisticsDealTime(models.Model):
-    yearNum = models.SmallIntegerField(db_column='yearNum', blank=True, null=True)
     city = models.CharField(max_length=255, blank=True, null=True)
-    monthNum = models.IntegerField(db_column='monthNum', blank=True, null=True)
+    yearNum = models.SmallIntegerField(db_column='yearNum', blank=True, null=True)
     quarterNum = models.IntegerField(db_column='quarterNum', blank=True, null=True)
+    monthNum = models.IntegerField(db_column='monthNum', blank=True, null=True)
+    dayNum = models.IntegerField(blank=True, null=True)
     statisticsType = models.IntegerField(db_column='statisticsType', blank=True, null=True)
     result = models.FloatField(blank=True, null=True)
 
@@ -96,10 +100,11 @@ class StatisticsDealTime(models.Model):
 
 
 class StatisticsOver48Rate(models.Model):
-    yearNum = models.SmallIntegerField(db_column='yearNum', blank=True, null=True)
     city = models.CharField(max_length=10, blank=True, null=True)
-    monthNum = models.IntegerField(db_column='monthNum', blank=True, null=True)
+    yearNum = models.SmallIntegerField(db_column='yearNum', blank=True, null=True)
     quarterNum = models.IntegerField(db_column='quarterNum', blank=True, null=True)
+    monthNum = models.IntegerField(db_column='monthNum', blank=True, null=True)
+    dayNum = models.IntegerField(blank=True, null=True)
     statisticsType = models.IntegerField(db_column='statisticsType', blank=True, null=True)
     result = models.FloatField(blank=True, null=True)
 
@@ -109,10 +114,11 @@ class StatisticsOver48Rate(models.Model):
 
 
 class StatisticsSpecificDealTime(models.Model):
-    yearNum = models.SmallIntegerField(db_column='yearNum', blank=True, null=True)
     city = models.CharField(max_length=10, blank=True, null=True)
-    monthNum = models.IntegerField(db_column='monthNum', blank=True, null=True)
+    yearNum = models.SmallIntegerField(db_column='yearNum', blank=True, null=True)
     quarterNum = models.IntegerField(db_column='quarterNum', blank=True, null=True)
+    monthNum = models.IntegerField(db_column='monthNum', blank=True, null=True)
+    dayNum = models.IntegerField(blank=True, null=True)
     statisticsType = models.IntegerField(db_column='statisticsType', blank=True, null=True)
     result = models.IntegerField(blank=True, null=True)
     reason = models.CharField(max_length=20, blank=True, null=True)
@@ -123,10 +129,11 @@ class StatisticsSpecificDealTime(models.Model):
 
 
 class StatisticsReason(models.Model):
-    yearNum = models.SmallIntegerField(db_column='yearNum', blank=True, null=True)
     city = models.CharField(max_length=10, blank=True, null=True)
+    yearNum = models.SmallIntegerField(db_column='yearNum', blank=True, null=True)
     monthNum = models.IntegerField(db_column='monthNum', blank=True, null=True)
     quarterNum = models.IntegerField(db_column='quarterNum', blank=True, null=True)
+    dayNum = models.IntegerField(blank=True, null=True)
     statisticsType = models.IntegerField(db_column='statisticsType', blank=True, null=True)
     reason = models.CharField(max_length=20, blank=True, null=True)
     result = models.IntegerField(blank=True, null=True)
