@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Django Echarts Demo</title>
     {% block  include_css %}
-        <link href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css" rel="stylesheet">
+        <link href="{{ STATIC_URL }}css/bootstrap.min.css" rel="stylesheet">
     {% endblock %}
     {% block extra_css %}
     {% endblock %}
@@ -61,8 +61,8 @@
 </div>
 <!--/.container-->
 {% block include_script %}
-    <script src="https://cdn.bootcss.com/jquery/2.2.4/jquery.min.js"></script>
-    <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+    <script src="{{ STATIC_URL }}js/jquery.min.js"></script>
+    <script src="{{ STATIC_URL }}js/bootstrap.min.js"></script>
 {% endblock %}
 
 {% block extra_script %}

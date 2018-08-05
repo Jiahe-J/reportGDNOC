@@ -32,7 +32,7 @@
 
 
 {% block extra_script %}
-    <script src="https://cdn.bootcss.com/echarts/4.0.4/echarts.min.js"></script>
+    <script src="{{ STATIC_URL }}echarts/echarts.min.js"></script>
     <script src="{{ STATIC_URL }}echarts/echarts-wordcloud.min.js"></script>
     {% echarts_js_content echarts_instance %}
 {% endblock %}

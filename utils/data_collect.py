@@ -527,7 +527,7 @@ def collect_over_48h_rate(statistics_type, year, quarter=1, month=1, day=1, begi
         over_48h_rate_list += gd_w_rate
         gd_n_rate = get_district_over_48h_rate(5, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
         over_48h_rate_list += gd_n_rate
-        over_48h_rate_dict['over_rate'] = over_48h_rate_list
+        over_48h_rate_dict['result'] = over_48h_rate_list
         over_48h_rate_dict['status'] = 'success'
         return over_48h_rate_dict
     except Exception as e:
@@ -579,3 +579,37 @@ def get_district_over_48h_rate(district_id, statistics_type, year, quarter, mont
     for i in district_over_48h_rate:
         i['Over48Rate'] = str(i.get('Over48Rate'))
     return district_over_48h_rate
+
+
+def collect_deal_quality(statistics_type, year, quarter, month, day, begin_datetime, end_datetime):
+    result_list = []
+    result = dict()
+    try:
+        intime_rate_result = collect_deal_in_time_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+        deal_time_result = collect_deal_time(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+        ovre48_rate_result = collect_over_48h_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+        for i in range(1, 6):
+            cities = get_cities_by_district_id(i)
+            district = District.objects.get(id=i).district
+            for city in cities:
+                result_item = dict()
+                result_item['area'] = district
+                result_item['city'] = city
+                for intime_rate_item in intime_rate_result.get('result'):
+                    if intime_rate_item.get("city") == city:
+                        result_item['IntimeRate'] = intime_rate_item.get('IntimeRate')
+                for deal_time_item in deal_time_result.get('result'):
+                    if deal_time_item.get('city') == city:
+                        result_item['AverageTime'] = deal_time_item.get('AverageTime')
+                for ovre48_rate_item in ovre48_rate_result.get('result'):
+                    if ovre48_rate_item.get('city') == city:
+                        result_item['Over48Rate'] = ovre48_rate_item.get("Over48Rate")
+                result_list.append(result_item)
+
+        result['status'] = "success"
+        result['result'] = result_list
+        return result
+    except Exception as e:
+        result['status'] = "fail"
+        result['msg'] = str(e)
+        return result
