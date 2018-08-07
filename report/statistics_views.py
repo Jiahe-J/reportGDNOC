@@ -3,7 +3,7 @@ from django.http import JsonResponse
 from django.views.generic.base import View
 
 from utils.data_collect import collect_order_amount_chart, collect_order_amount_table, collect_deal_time, collect_over_48h_rate, \
-    collect_deal_in_time_rate, collect_deal_quality
+    collect_deal_in_time_rate, collect_deal_quality, collect_reason_amount
 
 
 def get_parameter(request):
@@ -14,6 +14,7 @@ def get_parameter(request):
     day = int(request.POST.get('day', 1))
     begin_datetime = str(request.POST.get('begin_datetime', ""))
     end_datetime = str(request.POST.get('end_datetime', ""))
+    print(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
     return statistics_type, year, quarter, month, day, begin_datetime, end_datetime
 
 
@@ -54,7 +55,7 @@ class DealtimeView(View):
             return JsonResponse(data=result_json, safe=False)
 
 
-class Over48Rate(View):
+class Over48RateView(View):
     def post(self, request):
         result_json = dict()
         try:
@@ -67,12 +68,25 @@ class Over48Rate(View):
             return JsonResponse(data=result_json, safe=False)
 
 
-class DealQuality(View):
+class DealQualityView(View):
     def post(self, request):
         result_json = dict()
         try:
             statistics_type, year, quarter, month, day, begin_datetime, end_datetime = get_parameter(request)
             result_json = collect_deal_quality(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+            return JsonResponse(data=result_json, safe=False)
+        except Exception as e:
+            result_json['status'] = 'fail'
+            result_json['msg'] = str(e)
+            return JsonResponse(data=result_json, safe=False)
+
+
+class ReasonAmountView(View):
+    def post(self, request):
+        result_json = dict()
+        try:
+            statistics_type, year, quarter, month, day, begin_datetime, end_datetime = get_parameter(request)
+            result_json = collect_reason_amount(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
             return JsonResponse(data=result_json, safe=False)
         except Exception as e:
             result_json['status'] = 'fail'

@@ -12,7 +12,7 @@ import operator
 from django.db.models import Count, Avg, QuerySet
 
 from report.models import MalfunctionData, City, DistrictCity, StatisticsAmount, StatisticsInTimeRate, StatisticsDealTime, StatisticsOver48Rate, \
-    District
+    District, StatisticsReason
 
 
 def collect_order_amount(statistics_type, year, quarter, month, day):
@@ -208,7 +208,7 @@ def get_district_order_amount(district_id, statistics_type, year, quarter, month
             raise Exception("数据库中无相关数据，时间区间：%s-%s ;类型：%s，;"
                             "%s-%s-%s 季度：%s" % (begin_datetime, end_datetime, statistics_type, year, month, day, quarter))
     district_order_amount = sorted(order_amount, key=operator.itemgetter('sum'), reverse=True)
-    ls = ['transmission', 'dynamics', 'exchange', 'AN', 'wireless']
+    ls = ['transmission', 'dynamics', 'exchange', 'AN', 'wireless', 'sum']
     for i in district_order_amount:
         for p in ls:
             i[p] = str(i.get(p))
@@ -613,3 +613,110 @@ def collect_deal_quality(statistics_type, year, quarter, month, day, begin_datet
         result['status'] = "fail"
         result['msg'] = str(e)
         return result
+
+
+def collect_reason_amount(statistics_type, year=1, quarter=1, month=1, day=1, begin_datetime="", end_datetime=""):
+    reason_amount_dict = {}
+    if statistics_type == 1:
+        if not StatisticsReason.objects.filter(statisticsType=1, yearNum=year):
+            begin_datetime = datetime.date(year, 1, 1)
+            end_datetime = datetime.datetime(year, 12, 31, 23, 59, 59)
+    elif statistics_type == 2:
+        if not StatisticsReason.objects.filter(statisticsType=2, yearNum=year, quarterNum=quarter):
+            begin_datetime = datetime.date(year, (quarter - 1) * 3 + 1, 1)
+            end_datetime = datetime.datetime(year, quarter * 3, calendar.mdays[quarter * 3], 23, 59, 59)
+    elif statistics_type == 3:
+        if not StatisticsReason.objects.filter(statisticsType=3, yearNum=year, monthNum=month):
+            begin_datetime = datetime.date(year, month, 1)
+            end_datetime = datetime.datetime(year, month, calendar.mdays[month], 23, 59, 59)
+    elif statistics_type == 4:
+        if not StatisticsReason.objects.filter(statisticsType=4, yearNum=year, monthNum=month, dayNum=day):
+            begin_datetime = datetime.date(year, month, 1)
+            end_datetime = begin_datetime + datetime.timedelta(days=7)
+    if begin_datetime and statistics_type != 5:
+        print(begin_datetime)
+        reason_amount_list = []
+        for city_obj in City.objects.all():
+            sum_amount = MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime,
+                                                        city=city_obj.city).count()
+            line_amount = MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime, city=city_obj.city,
+                                                         malfunctionJudgment__contains='线路故障').count()
+            poweroff_amnout = MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime, city=city_obj.city,
+                                                             malfunctionJudgment__contains='停电').count()
+            equipment_amount = MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime,
+                                                              city=city_obj.city, malfunctionJudgment__contains='设备故障').count()
+
+            env_amount = MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime, city=city_obj.city,
+                                                        malfunctionJudgment__contains='动环故障').count() - poweroff_amnout
+            other_amount = sum_amount - line_amount - poweroff_amnout - equipment_amount - env_amount
+
+            reason_amount_item_1 = StatisticsReason(statisticsType=statistics_type, yearNum=year, quarterNum=quarter, monthNum=month, dayNum=day,
+                                                    reason="线路故障", result=line_amount, city=city_obj.city)
+            reason_amount_list.append(reason_amount_item_1)
+            reason_amount_item_2 = StatisticsReason(statisticsType=statistics_type, yearNum=year, quarterNum=quarter, monthNum=month, dayNum=day,
+                                                    reason="停电", result=poweroff_amnout, city=city_obj.city)
+            reason_amount_list.append(reason_amount_item_2)
+            reason_amount_item_3 = StatisticsReason(statisticsType=statistics_type, yearNum=year, quarterNum=quarter, monthNum=month, dayNum=day,
+                                                    reason="设备故障", result=equipment_amount, city=city_obj.city)
+            reason_amount_list.append(reason_amount_item_3)
+            reason_amount_item_4 = StatisticsReason(statisticsType=statistics_type, yearNum=year, quarterNum=quarter, monthNum=month, dayNum=day,
+                                                    reason="动环故障", result=env_amount, city=city_obj.city)
+            reason_amount_list.append(reason_amount_item_4)
+            reason_amount_item_5 = StatisticsReason(statisticsType=statistics_type, yearNum=year, quarterNum=quarter, monthNum=month, dayNum=day,
+                                                    reason="其他", result=other_amount, city=city_obj.city)
+            reason_amount_list.append(reason_amount_item_5)
+        StatisticsReason.objects.bulk_create(reason_amount_list)
+    reason_amount_rt = []
+    for i in range(1, 6):
+        reason_amount_rt += get_district_reason_amount(i, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+    reason_amount_dict['status'] = 'success'
+    reason_amount_dict['result'] = reason_amount_rt
+    return reason_amount_dict
+
+
+def get_district_reason_amount(district_id, statistics_type, year, quarter, month, day, begin_datetime, end_datetime):
+    area = District.objects.get(id=district_id).district
+    cities = get_cities_by_district_id(district_id)
+    reason_amount_list = []
+    for i in cities:
+        reason_amount_item = dict()
+        reason_amount_item['area'] = area
+        reason_amount_item['city'] = i
+        if statistics_type == 2:
+            qs = StatisticsReason.objects.filter(statisticsType=2, city=i, yearNum=year, quarterNum=quarter)
+        elif statistics_type == 3:
+            qs = StatisticsReason.objects.filter(statisticsType=3, city=i, yearNum=year, monthNum=month)
+        elif statistics_type == 4:
+            qs = StatisticsReason.objects.filter(statisticsType=4, city=i, yearNum=year, monthNum=month, dayNum=day)
+        elif statistics_type == 1:
+            qs = StatisticsReason.objects.filter(statisticsType=1, city=i, yearNum=year)
+        else:
+            qs = []
+        if qs and statistics_type != 5:
+            reason_amount_item['line'] = str(qs.get(reason="线路故障").result)
+            reason_amount_item['power'] = str(qs.get(reason='停电').result)
+            reason_amount_item['equipment'] = str(qs.get(reason="设备故障").result)
+            reason_amount_item['environment'] = str(qs.get(reason="动环故障").result)
+            reason_amount_item['other'] = str(qs.get(reason='其他').result)
+        elif statistics_type == 5:
+            sum_amount = MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime,
+                                                        city=i).count()
+            reason_amount_item['line'] = str(
+                MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime, city=i,
+                                               malfunctionJudgment__contains='线路故障').count())
+            reason_amount_item['power'] = str(
+                MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime, city=i,
+                                               malfunctionJudgment__contains='停电').count())
+            reason_amount_item['equipment'] = str(MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime,
+                                                                                 city=i, malfunctionJudgment__contains='设备故障').count())
+
+            reason_amount_item['environment'] = str(
+                MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime,
+                                               city=i,
+                                               malfunctionJudgment__contains='动环故障').count() - int(reason_amount_item[
+                                                                                                       'power']))
+            reason_amount_item['other'] = str(sum_amount - int(reason_amount_item['line']) - int(reason_amount_item['power']) - int(
+                reason_amount_item['environment']) - \
+                                              int(reason_amount_item['equipment']))
+        reason_amount_list.append(reason_amount_item)
+    return reason_amount_list
