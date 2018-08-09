@@ -1,9 +1,11 @@
 # coding=utf8
+from datetime import datetime
+
 from django.http import JsonResponse
 from django.views.generic.base import View
 
 from utils.data_collect import collect_order_amount_chart, collect_order_amount_table, collect_deal_time, collect_over_48h_rate, \
-    collect_deal_in_time_rate, collect_deal_quality, collect_reason_amount
+    collect_deal_in_time_rate, collect_deal_quality, collect_specific_dealtime_amount
 
 
 def get_parameter(request):
@@ -20,21 +22,25 @@ def get_parameter(request):
 
 class OrderAmountView(View):
     def post(self, request):
+        st = datetime.now()
         statistics_type, year, quarter, month, day, begin_datetime, end_datetime = get_parameter(request)
         target = request.POST.get('target', "")
         if target == 'chart':
             result_json = collect_order_amount_chart(statistics_type, year, quarter, month, day)
         else:
             result_json = collect_order_amount_table(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+        result_json['process_time'] = str(datetime.now() - st)
         return JsonResponse(data=result_json, safe=False)
 
 
 class IntimeRateView(View):
     def post(self, request):
+        st = datetime.now()
         result_json = dict()
         try:
             statistics_type, year, quarter, month, day, begin_datetime, end_datetime = get_parameter(request)
             result_json = collect_deal_in_time_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+            result_json['process_time'] = str(datetime.now() - st)
             return JsonResponse(data=result_json, safe=False)
         except Exception as e:
             result_json['status'] = 'fail'
@@ -44,10 +50,12 @@ class IntimeRateView(View):
 
 class DealtimeView(View):
     def post(self, request):
+        st = datetime.now()
         result_json = dict()
         try:
             statistics_type, year, quarter, month, day, begin_datetime, end_datetime = get_parameter(request)
             result_json = collect_deal_time(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+            result_json['process_time'] = str(datetime.now() - st)
             return JsonResponse(data=result_json, safe=False)
         except Exception as e:
             result_json['status'] = 'fail'
@@ -57,10 +65,12 @@ class DealtimeView(View):
 
 class Over48RateView(View):
     def post(self, request):
+        st = datetime.now()
         result_json = dict()
         try:
             statistics_type, year, quarter, month, day, begin_datetime, end_datetime = get_parameter(request)
             result_json = collect_over_48h_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+            result_json['process_time'] = str(datetime.now() - st)
             return JsonResponse(data=result_json, safe=False)
         except Exception as e:
             result_json['status'] = 'fail'
@@ -70,10 +80,12 @@ class Over48RateView(View):
 
 class DealQualityView(View):
     def post(self, request):
+        st = datetime.now()
         result_json = dict()
         try:
             statistics_type, year, quarter, month, day, begin_datetime, end_datetime = get_parameter(request)
             result_json = collect_deal_quality(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+            result_json['process_time'] = str(datetime.now() - st)
             return JsonResponse(data=result_json, safe=False)
         except Exception as e:
             result_json['status'] = 'fail'
@@ -81,12 +93,14 @@ class DealQualityView(View):
             return JsonResponse(data=result_json, safe=False)
 
 
-class ReasonAmountView(View):
+class SpecificDealtimeAmountView(View):
     def post(self, request):
+        st = datetime.now()
         result_json = dict()
         try:
             statistics_type, year, quarter, month, day, begin_datetime, end_datetime = get_parameter(request)
-            result_json = collect_reason_amount(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+            result_json = collect_specific_dealtime_amount(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+            result_json['process_time'] = str(datetime.now() - st)
             return JsonResponse(data=result_json, safe=False)
         except Exception as e:
             result_json['status'] = 'fail'

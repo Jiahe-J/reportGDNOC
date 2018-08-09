@@ -37,7 +37,7 @@ def delete_former_data(year, quarter):
     if quarter >= 1 and quarter <= 4:
         begin_datetime = datetime.date(year, quarter, 1)
         end_datetime = datetime.date(year, quarter * 3, calendar.mdays[quarter * 3])
-        MalfunctionData.objects.filter(distributeTime__gte=begin_datetime, distributeTime__lte=end_datetime).delete()
+        MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).delete()
 
 
 # 批量导入excel .xls数据
