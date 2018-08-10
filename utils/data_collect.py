@@ -78,21 +78,9 @@ def collect_order_amount_table(statistics_type, year, quarter=1, month=1, day=1,
             if msg:
                 return {'msg': msg, 'status': 'fail'}
         # 珠1地区 Pearl River Delta 1
-        prd_1_amount = get_district_order_amount(1, statistics_type=statistics_type, year=year, quarter=quarter, month=month, day=day,
+        prd_1_amount = get_district_order_amount(statistics_type=statistics_type, year=year, quarter=quarter, month=month, day=day,
                                                  begin_datetime=begin_datetime, end_datetime=end_datetime)
         order_amount_list += prd_1_amount
-        prd_2_amount = get_district_order_amount(2, statistics_type=statistics_type, year=year, quarter=quarter, month=month, day=day,
-                                                 begin_datetime=begin_datetime, end_datetime=end_datetime)
-        order_amount_list += prd_2_amount
-        gd_e_amount = get_district_order_amount(3, statistics_type=statistics_type, year=year, quarter=quarter, month=month, day=day,
-                                                begin_datetime=begin_datetime, end_datetime=end_datetime)
-        order_amount_list += gd_e_amount
-        gd_w_amount = get_district_order_amount(4, statistics_type=statistics_type, year=year, quarter=quarter, month=month, day=day,
-                                                begin_datetime=begin_datetime, end_datetime=end_datetime)
-        order_amount_list += gd_w_amount
-        gd_n_amount = get_district_order_amount(5, statistics_type=statistics_type, year=year, quarter=quarter, month=month, day=day,
-                                                begin_datetime=begin_datetime, end_datetime=end_datetime)
-        order_amount_list += gd_n_amount
         order_amount_dict['result'] = order_amount_list
         order_amount_dict['status'] = 'success'
         return order_amount_dict
@@ -154,63 +142,69 @@ def collect_order_amount_chart(statistics_type, year, quarter=1, month=1, day=1,
 
 # 根据区域ID,order_admout_queryset返回排序好的区域字典列表
 # 珠1:1,珠2:2,粤东:3,粤西:4,粤北:5
-def get_district_order_amount(district_id, statistics_type, year, quarter, month, day, begin_datetime, end_datetime):
-    area = District.objects.get(id=district_id).district
-    cities = get_cities_by_district_id(district_id)
-    order_amount = []
-    for i in cities:
-        amount_item = dict()
-        amount_item['area'] = area
-        amount_item['city'] = i
-        if statistics_type == 2:
-            result_list = StatisticsAmount.objects.filter(city=i, yearNum=year, quarterNum=quarter, statisticsType=2)
-        elif statistics_type == 3:
-            result_list = StatisticsAmount.objects.filter(city=i, yearNum=year, monthNum=month, statisticsType=3)
-        elif statistics_type == 4:
-            result_list = StatisticsAmount.objects.filter(city=i, yearNum=year, monthNum=month, dayNum=day, statisticsType=4)
-        elif statistics_type == 5:
-            result_list = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime), city=i).values('city',
-                                                                                                                              'profession').annotate(
-                result=Count('profession'))
-        else:
-            result_list = StatisticsAmount.objects.filter(city=i, yearNum=year, statisticsType=1)
-        if result_list and statistics_type != 5:
-            transmission = result_list.filter(profession="传输")[0].result if result_list.filter(profession="传输") else 0
-            dynamics = result_list.filter(profession="动力")[0].result if result_list.filter(profession="动力") else 0
-            exchange = result_list.filter(profession="交换")[0].result if result_list.filter(profession="交换") else 0
-            AN = result_list.filter(profession="接入网")[0].result if result_list.filter(profession="接入网") else 0
-            wireless = result_list.filter(profession="无线")[0].result if result_list.filter(profession="无线") else 0
-            sum_amount = transmission + dynamics + exchange + AN + wireless
-            amount_item['transmission'] = transmission
-            amount_item['dynamics'] = dynamics
-            amount_item['exchange'] = exchange
-            amount_item['AN'] = AN
-            amount_item['wireless'] = wireless
-            amount_item['sum'] = sum_amount
-            order_amount.append(amount_item)
-        elif result_list and statistics_type == 5:
-            transmission = result_list.filter(profession="传输")[0].get('result', 0)
-            dynamics = result_list.filter(profession="动力")[0].get('result', 0)
-            exchange = result_list.filter(profession="交换")[0].get('result', 0)
-            AN = result_list.filter(profession="接入网")[0].get('result', 0)
-            wireless = result_list.filter(profession="无线")[0].get('result', 0)
-            sum_amount = transmission + dynamics + exchange + AN + wireless
-            amount_item['transmission'] = transmission
-            amount_item['dynamics'] = dynamics
-            amount_item['exchange'] = exchange
-            amount_item['AN'] = AN
-            amount_item['wireless'] = wireless
-            amount_item['sum'] = sum_amount
-            order_amount.append(amount_item)
-        else:
-            raise Exception("数据库中无相关数据，时间区间：%s-%s ;类型：%s，;"
-                            "%s-%s-%s 季度：%s" % (begin_datetime, end_datetime, statistics_type, year, month, day, quarter))
-    district_order_amount = sorted(order_amount, key=operator.itemgetter('sum'), reverse=True)
-    ls = ['transmission', 'dynamics', 'exchange', 'AN', 'wireless', 'sum']
-    for i in district_order_amount:
-        for p in ls:
-            i[p] = str(i.get(p))
-    return district_order_amount
+def get_district_order_amount(statistics_type, year, quarter, month, day, begin_datetime, end_datetime):
+    order_amount_list = []
+    if statistics_type == 2:
+        result_list = StatisticsAmount.objects.filter(yearNum=year, quarterNum=quarter, statisticsType=2)
+    elif statistics_type == 3:
+        result_list = StatisticsAmount.objects.filter(yearNum=year, monthNum=month, statisticsType=3)
+    elif statistics_type == 4:
+        result_list = StatisticsAmount.objects.filter(yearNum=year, monthNum=month, dayNum=day, statisticsType=4)
+    elif statistics_type == 5:
+        result_list = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values('city',
+                                                                                                                  'profession').annotate(
+            result=Count('profession'))
+    else:
+        result_list = StatisticsAmount.objects.filter(yearNum=year, statisticsType=1)
+    for district_id in range(1, 6):
+        area = District.objects.get(id=district_id).district
+        cities = get_cities_by_district_id(district_id)
+        order_amount = []
+
+        for i in cities:
+            amount_item = dict()
+            amount_item['area'] = area
+            amount_item['city'] = i
+            if result_list and statistics_type != 5:
+                city_result_list = result_list.filter(city=i)
+                transmission = city_result_list.filter(profession="传输")[0].result if city_result_list.filter(profession="传输") else 0
+                dynamics = city_result_list.filter(profession="动力")[0].result if city_result_list.filter(profession="动力") else 0
+                exchange = city_result_list.filter(profession="交换")[0].result if city_result_list.filter(profession="交换") else 0
+                AN = city_result_list.filter(profession="接入网")[0].result if city_result_list.filter(profession="接入网") else 0
+                wireless = city_result_list.filter(profession="无线")[0].result if city_result_list.filter(profession="无线") else 0
+                sum_amount = transmission + dynamics + exchange + AN + wireless
+                amount_item['transmission'] = transmission
+                amount_item['dynamics'] = dynamics
+                amount_item['exchange'] = exchange
+                amount_item['AN'] = AN
+                amount_item['wireless'] = wireless
+                amount_item['sum'] = sum_amount
+                order_amount.append(amount_item)
+            elif result_list and statistics_type == 5:
+                city_result_list = result_list.filter(city=i)
+                transmission = city_result_list.filter(profession="传输")[0].get('result', 0)
+                dynamics = city_result_list.filter(profession="动力")[0].get('result', 0)
+                exchange = city_result_list.filter(profession="交换")[0].get('result', 0)
+                AN = city_result_list.filter(profession="接入网")[0].get('result', 0)
+                wireless = city_result_list.filter(profession="无线")[0].get('result', 0)
+                sum_amount = transmission + dynamics + exchange + AN + wireless
+                amount_item['transmission'] = transmission
+                amount_item['dynamics'] = dynamics
+                amount_item['exchange'] = exchange
+                amount_item['AN'] = AN
+                amount_item['wireless'] = wireless
+                amount_item['sum'] = sum_amount
+                order_amount.append(amount_item)
+            else:
+                raise Exception("数据库中无相关数据，时间区间：%s-%s ;类型：%s，;"
+                                "%s-%s-%s 季度：%s" % (begin_datetime, end_datetime, statistics_type, year, month, day, quarter))
+        district_order_amount = sorted(order_amount, key=operator.itemgetter('sum'), reverse=True)
+        ls = ['transmission', 'dynamics', 'exchange', 'AN', 'wireless', 'sum']
+        for i in district_order_amount:
+            for p in ls:
+                i[p] = str(i.get(p))
+        order_amount_list += district_order_amount
+    return order_amount_list
 
 
 # 根据地区id获取城市列表
@@ -241,7 +235,7 @@ def collect_deal_in_time_rate(statistics_type, year, quarter=1, month=1, day=1, 
             deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
                 'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
             order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('isTimeOut'))
+                'city').annotate(order_amount=Count('city'))
     elif statistics_type == 3:
         if not StatisticsInTimeRate.objects.filter(yearNum=year, monthNum=month, statisticsType=3).exists():
             begin_datetime = datetime.date(year, month, 1)
@@ -249,7 +243,7 @@ def collect_deal_in_time_rate(statistics_type, year, quarter=1, month=1, day=1, 
             deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
                 'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
             order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('isTimeOut'))
+                'city').annotate(order_amount=Count('city'))
     elif statistics_type == 4:
         if not StatisticsInTimeRate.objects.filter(yearNum=year, monthNum=month, dayNum=day, statisticsType=4).exists():
             begin_datetime = datetime.date(year, month, day)
@@ -257,7 +251,7 @@ def collect_deal_in_time_rate(statistics_type, year, quarter=1, month=1, day=1, 
             deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
                 'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
             order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('isTimeOut'))
+                'city').annotate(order_amount=Count('city'))
     elif statistics_type == 1:
         if not StatisticsInTimeRate.objects.filter(yearNum=year, statisticsType=1).exists():
             begin_datetime = datetime.date(year, 1, 1)
@@ -265,7 +259,7 @@ def collect_deal_in_time_rate(statistics_type, year, quarter=1, month=1, day=1, 
             deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
                 'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
             order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('isTimeOut'))
+                'city').annotate(order_amount=Count('city'))
     if deal_in_time_queryset and order_amount_queryset:
         rate_item_list = []
         for i in deal_in_time_queryset:
@@ -289,16 +283,8 @@ def collect_deal_in_time_rate(statistics_type, year, quarter=1, month=1, day=1, 
     # 根据区域ID,order_deal_in_time_queryset返回排序好的区域字典列表
     # 珠1:1,珠2:2,粤东:3,粤西:4,粤北:5
     try:
-        prd_1_rate = get_district_deal_in_time_rate(1, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+        prd_1_rate = get_district_deal_in_time_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
         deal_in_time_rate_list += prd_1_rate
-        prd_2_rate = get_district_deal_in_time_rate(2, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        deal_in_time_rate_list += prd_2_rate
-        gd_e_rate = get_district_deal_in_time_rate(3, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        deal_in_time_rate_list += gd_e_rate
-        gd_w_rate = get_district_deal_in_time_rate(4, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        deal_in_time_rate_list += gd_w_rate
-        gd_n_rate = get_district_deal_in_time_rate(5, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        deal_in_time_rate_list += gd_n_rate
         deal_in_time_rate_dict['result'] = deal_in_time_rate_list
         deal_in_time_rate_dict['status'] = 'success'
         return deal_in_time_rate_dict
@@ -308,47 +294,51 @@ def collect_deal_in_time_rate(statistics_type, year, quarter=1, month=1, day=1, 
         return deal_in_time_rate_dict
 
 
-def get_district_deal_in_time_rate(district_id, statistics_type, year, quarter, month, day, begin_datetime, end_datetime):
-    area = District.objects.get(id=district_id).district
-    cities = get_cities_by_district_id(district_id)
-    deal_in_time_rate_list = []
-    deal_in_time_queryset = []
-    order_amount_queryset = []
-    for i in cities:
-        deal_in_time_rate_item = dict()
-        deal_in_time_rate_item['area'] = area
-        deal_in_time_rate_item['city'] = i
-        if statistics_type == 2:
-            qs = StatisticsInTimeRate.objects.filter(city=i, yearNum=year, quarterNum=quarter, statisticsType=2)
-        elif statistics_type == 3:
-            qs = StatisticsInTimeRate.objects.filter(city=i, yearNum=year, monthNum=month, statisticsType=3)
-        elif statistics_type == 4:
-            qs = StatisticsInTimeRate.objects.filter(city=i, yearNum=year, monthNum=month, dayNum=day, statisticsType=4)
-        elif statistics_type == 1:
-            qs = StatisticsInTimeRate.objects.filter(city=i, yearNum=year, statisticsType=1)
-        else:
-            qs = None
-            deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
-                                                                   city=i).values(
-                'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
-            order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
-                                                                   city=i).values(
-                'city').annotate(order_amount=Count('isTimeOut'))
-        if qs and statistics_type != 5:
-            deal_in_time_rate_item['IntimeRate'] = qs[0].result
-            deal_in_time_rate_list.append(deal_in_time_rate_item)
-        elif deal_in_time_queryset and order_amount_queryset and statistics_type == 5:
-            order_amount = order_amount_queryset[0].get('order_amount')
-            in_time_rate_amount = deal_in_time_queryset[0].get('deal_in_time_amount')
-            deal_in_time_rate_item['IntimeRate'] = round(in_time_rate_amount / order_amount * 100, 2) if order_amount != 0 else 0
-            deal_in_time_rate_list.append(deal_in_time_rate_item)
-        else:
-            raise Exception("数据库中无相关数据，时间区间：%s-%s ;类型：%s，;"
-                            "%s-%s-%s 季度：%s" % (begin_datetime, end_datetime, statistics_type, year, month, day, quarter))
-    district_deal_in_time_rate = sorted(deal_in_time_rate_list, key=operator.itemgetter('IntimeRate'), reverse=True)
-    for i in district_deal_in_time_rate:
-        i['IntimeRate'] = str(i.get('IntimeRate'))
-    return district_deal_in_time_rate
+def get_district_deal_in_time_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime):
+    intime_list = []
+    if statistics_type == 2:
+        qs = StatisticsInTimeRate.objects.filter(yearNum=year, quarterNum=quarter, statisticsType=2)
+    elif statistics_type == 3:
+        qs = StatisticsInTimeRate.objects.filter(yearNum=year, monthNum=month, statisticsType=3)
+    elif statistics_type == 4:
+        qs = StatisticsInTimeRate.objects.filter(yearNum=year, monthNum=month, dayNum=day, statisticsType=4)
+    elif statistics_type == 1:
+        qs = StatisticsInTimeRate.objects.filter(yearNum=year, statisticsType=1)
+    else:
+        qs = None
+        deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
+                                                               ).values(
+            'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
+        order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
+                                                               ).values(
+            'city').annotate(order_amount=Count('city'))
+    for district_id in range(1, 6):
+        area = District.objects.get(id=district_id).district
+        cities = get_cities_by_district_id(district_id)
+        deal_in_time_rate_list = []
+        for i in cities:
+            deal_in_time_rate_item = dict()
+            deal_in_time_rate_item['area'] = area
+            deal_in_time_rate_item['city'] = i
+            if qs and statistics_type != 5:
+                city_qs = qs.filter(city=i)
+                deal_in_time_rate_item['IntimeRate'] = city_qs[0].result
+                deal_in_time_rate_list.append(deal_in_time_rate_item)
+            elif deal_in_time_queryset and order_amount_queryset and statistics_type == 5:
+                city_amount_qs = order_amount_queryset.filter(city=i)[0]
+                city_deal_intime_qs = deal_in_time_queryset.filter(city=i)[0]
+                order_amount = city_amount_qs.get('order_amount')
+                in_time_rate_amount = city_deal_intime_qs.get('deal_in_time_amount')
+                deal_in_time_rate_item['IntimeRate'] = round(in_time_rate_amount / order_amount * 100, 2) if order_amount != 0 else 0
+                deal_in_time_rate_list.append(deal_in_time_rate_item)
+            else:
+                raise Exception("数据库中无相关数据，时间区间：%s-%s ;类型：%s，;"
+                                "%s-%s-%s 季度：%s" % (begin_datetime, end_datetime, statistics_type, year, month, day, quarter))
+        district_deal_in_time_rate = sorted(deal_in_time_rate_list, key=operator.itemgetter('IntimeRate'), reverse=True)
+        for i in district_deal_in_time_rate:
+            i['IntimeRate'] = str(i.get('IntimeRate'))
+        intime_list += district_deal_in_time_rate
+    return intime_list
 
 
 # 故障平均处理时长统计,按年度,季度进行工单处理及时率汇总
@@ -398,16 +388,9 @@ def collect_deal_time(statistics_type, year, quarter=1, month=1, day=1, begin_da
         StatisticsDealTime.objects.bulk_create(process_time_list)
 
     try:
-        prd_1_rate = get_district_deal_time(1, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+        prd_1_rate = get_district_deal_time(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
         deal_time_list += prd_1_rate
-        prd_2_rate = get_district_deal_time(2, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        deal_time_list += prd_2_rate
-        gd_e_rate = get_district_deal_time(3, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        deal_time_list += gd_e_rate
-        gd_w_rate = get_district_deal_time(4, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        deal_time_list += gd_w_rate
-        gd_n_rate = get_district_deal_time(5, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        deal_time_list += gd_n_rate
+
         deal_time_dict['result'] = deal_time_list
         deal_time_dict['status'] = 'success'
         return deal_time_dict
@@ -417,39 +400,43 @@ def collect_deal_time(statistics_type, year, quarter=1, month=1, day=1, begin_da
         return deal_time_dict
 
 
-def get_district_deal_time(district_id, statistics_type, year, quarter, month, day, begin_datetime, end_datetime):
-    area = District.objects.get(id=district_id).district
-    cities = get_cities_by_district_id(district_id)
-    deal_time_list = []
-    for i in cities:
-        deal_time_item = dict()
-        deal_time_item['area'] = area
-        deal_time_item['city'] = i
-        if statistics_type == 2:
-            qs = StatisticsDealTime.objects.filter(statisticsType=2, city=i, yearNum=year, quarterNum=quarter)
-        elif statistics_type == 3:
-            qs = StatisticsDealTime.objects.filter(statisticsType=3, city=i, yearNum=year, monthNum=month)
-        elif statistics_type == 4:
-            qs = StatisticsDealTime.objects.filter(statisticsType=4, city=i, yearNum=year, monthNum=month, dayNum=day)
-        elif statistics_type == 1:
-            qs = StatisticsDealTime.objects.filter(statisticsType=1, city=i, yearNum=year)
-        else:
-            qs = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime), city=i).values(
-                'city').annotate(processTime=Avg('processTime'))
+def get_district_deal_time(statistics_type, year, quarter, month, day, begin_datetime, end_datetime):
+    deal_time_result = []
+    if statistics_type == 2:
+        qs = StatisticsDealTime.objects.filter(statisticsType=2, yearNum=year, quarterNum=quarter)
+    elif statistics_type == 3:
+        qs = StatisticsDealTime.objects.filter(statisticsType=3, yearNum=year, monthNum=month)
+    elif statistics_type == 4:
+        qs = StatisticsDealTime.objects.filter(statisticsType=4, yearNum=year, monthNum=month, dayNum=day)
+    elif statistics_type == 1:
+        qs = StatisticsDealTime.objects.filter(statisticsType=1, yearNum=year)
+    else:
+        qs = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
+            'city').annotate(processTime=Avg('processTime'))
 
-        if qs and statistics_type != 5:
-            deal_time_item['AverageTime'] = qs[0].result
-            deal_time_list.append(deal_time_item)
-        elif qs and statistics_type == 5:
-            deal_time_item['AverageTime'] = round(qs[0].get('processTime') / 60, 2)
-            deal_time_list.append(deal_time_item)
-        else:
-            raise Exception("数据库中无相关数据，时间区间：%s-%s ;类型：%s，;"
-                            "%s-%s-%s 季度：%s" % (begin_datetime, end_datetime, statistics_type, year, month, day, quarter))
-    district_deal_time = sorted(deal_time_list, key=operator.itemgetter('AverageTime'), reverse=True)
-    for i in district_deal_time:
-        i['AverageTime'] = str(i.get('AverageTime'))
-    return district_deal_time
+    for district_id in range(1, 6):
+        area = District.objects.get(id=district_id).district
+        cities = get_cities_by_district_id(district_id)
+        deal_time_list = []
+        for i in cities:
+            deal_time_item = dict()
+            deal_time_item['area'] = area
+            deal_time_item['city'] = i
+            city_qs = qs.filter(city=i)[0]
+            if qs and statistics_type != 5:
+                deal_time_item['AverageTime'] = city_qs.result
+                deal_time_list.append(deal_time_item)
+            elif qs and statistics_type == 5:
+                deal_time_item['AverageTime'] = round(city_qs.get('processTime') / 60, 2)
+                deal_time_list.append(deal_time_item)
+            else:
+                raise Exception("数据库中无相关数据，时间区间：%s-%s ;类型：%s，;"
+                                "%s-%s-%s 季度：%s" % (begin_datetime, end_datetime, statistics_type, year, month, day, quarter))
+        district_deal_time = sorted(deal_time_list, key=operator.itemgetter('AverageTime'), reverse=True)
+        for i in district_deal_time:
+            i['AverageTime'] = str(i.get('AverageTime'))
+        deal_time_result += district_deal_time
+    return deal_time_result
 
 
 #  按年度,季度进行超48小时工单占比统计
@@ -515,16 +502,9 @@ def collect_over_48h_rate(statistics_type, year, quarter=1, month=1, day=1, begi
                 rate_item_list.append(rate_item)
         StatisticsOver48Rate.objects.bulk_create(rate_item_list)
     try:
-        prd_1_rate = get_district_over_48h_rate(1, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+        prd_1_rate = get_district_over_48h_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
         over_48h_rate_list += prd_1_rate
-        prd_2_rate = get_district_over_48h_rate(2, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        over_48h_rate_list += prd_2_rate
-        gd_e_rate = get_district_over_48h_rate(3, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        over_48h_rate_list += gd_e_rate
-        gd_w_rate = get_district_over_48h_rate(4, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        over_48h_rate_list += gd_w_rate
-        gd_n_rate = get_district_over_48h_rate(5, statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        over_48h_rate_list += gd_n_rate
+
         over_48h_rate_dict['result'] = over_48h_rate_list
         over_48h_rate_dict['status'] = 'success'
         return over_48h_rate_dict
@@ -535,51 +515,52 @@ def collect_over_48h_rate(statistics_type, year, quarter=1, month=1, day=1, begi
 
 
 # 珠1:1,珠2:2,粤东:3,粤西:4,粤北:5
-def get_district_over_48h_rate(district_id, statistics_type, year, quarter, month, day, begin_datetime, end_datetime):
-    area = District.objects.get(id=district_id).district
-    cities = get_cities_by_district_id(district_id)
-    over_48h_rate_list = []
-    over_48h_queryset = []
-    order_amount_queryset = []
-    for i in cities:
-        over_48h_rate_item = dict()
-        over_48h_rate_item['area'] = area
-        over_48h_rate_item['city'] = i
-        if statistics_type == 2:
-            qs = StatisticsOver48Rate.objects.filter(statisticsType=2, city=i, yearNum=year, quarterNum=quarter)
-        elif statistics_type == 3:
-            qs = StatisticsOver48Rate.objects.filter(statisticsType=3, city=i, yearNum=year, monthNum=month)
-        elif statistics_type == 4:
-            qs = StatisticsOver48Rate.objects.filter(statisticsType=4, city=i, yearNum=year, monthNum=month, dayNum=day)
-        elif statistics_type == 1:
-            qs = StatisticsOver48Rate.objects.filter(statisticsType=1, city=i, yearNum=year)
-        else:
-            qs = []
-            over_48h_queryset = MalfunctionData.objects.filter(ddistributeTime__range=(begin_datetime, end_datetime), city=i,
-                                                               processTime__gt='2880').values(
-                'city').annotate(over_48h_amount=Count('*'))
-            order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
-                                                                   city=i).values(
-                'city').annotate(order_amount=Count('*'))
-        if qs and statistics_type != 5:
-            over_48h_rate_item['Over48Rate'] = qs[0].result
-            over_48h_rate_list.append(over_48h_rate_item)
-        elif over_48h_queryset and order_amount_queryset and statistics_type == 5:
-            over_48_amount = over_48h_queryset[0].get('over_48h_amount')
-            order_amount = order_amount_queryset[0].get('order_amount')
-            over_48h_rate_item['Over48Rate'] = round(over_48_amount / order_amount * 100, 2) if order_amount != 0 else 0
-            over_48h_rate_list.append(over_48h_rate_item)
+def get_district_over_48h_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime):
+    over_result = []
+    if statistics_type == 2:
+        qs = StatisticsOver48Rate.objects.filter(statisticsType=2, yearNum=year, quarterNum=quarter)
+    elif statistics_type == 3:
+        qs = StatisticsOver48Rate.objects.filter(statisticsType=3, yearNum=year, monthNum=month)
+    elif statistics_type == 4:
+        qs = StatisticsOver48Rate.objects.filter(statisticsType=4, yearNum=year, monthNum=month, dayNum=day)
+    elif statistics_type == 1:
+        qs = StatisticsOver48Rate.objects.filter(statisticsType=1, yearNum=year)
+    else:
+        qs = []
+        over_48h_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
+                                                           processTime__gt='2880').values(
+            'city').annotate(over_48h_amount=Count('city'))
+        order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
+            'city').annotate(order_amount=Count('city'))
+    for district_id in range(1, 6):
+        area = District.objects.get(id=district_id).district
+        cities = get_cities_by_district_id(district_id)
+        over_48h_rate_list = []
+        for i in cities:
+            over_48h_rate_item = dict()
+            over_48h_rate_item['area'] = area
+            over_48h_rate_item['city'] = i
+            if qs and statistics_type != 5:
+                city_qs = qs.filter(city=i)
+                over_48h_rate_item['Over48Rate'] = city_qs[0].result if city_qs else 0
+                over_48h_rate_list.append(over_48h_rate_item)
+            elif over_48h_queryset and order_amount_queryset and statistics_type == 5:
+                over_48_amount = over_48h_queryset.filter(city=i)[0].get('over_48h_amount', 0) if over_48h_queryset.filter(city=i) else 0
+                order_amount = order_amount_queryset.filter(city=i)[0].get('order_amount')
+                over_48h_rate_item['Over48Rate'] = round(over_48_amount / order_amount * 100, 2) if order_amount != 0 else 0
+                over_48h_rate_list.append(over_48h_rate_item)
 
-        else:
-            raise Exception("数据库中无相关数据，时间区间：%s-%s ;类型：%s，;"
-                            "%s-%s-%s 季度：%s" % (begin_datetime, end_datetime, statistics_type, year, month, day, quarter))
-    district_over_48h_rate = sorted(over_48h_rate_list, key=operator.itemgetter('Over48Rate'), reverse=True)
-    for i in district_over_48h_rate:
-        i['Over48Rate'] = str(i.get('Over48Rate'))
-    return district_over_48h_rate
+            else:
+                raise Exception("数据库中无相关数据，时间区间：%s-%s ;类型：%s，;"
+                                "%s-%s-%s 季度：%s" % (begin_datetime, end_datetime, statistics_type, year, month, day, quarter))
+        district_over_48h_rate = sorted(over_48h_rate_list, key=operator.itemgetter('Over48Rate'), reverse=True)
+        for i in district_over_48h_rate:
+            i['Over48Rate'] = str(i.get('Over48Rate'))
+        over_result += district_over_48h_rate
+    return over_result
 
 
-def collect_deal_quality(statistics_type, year, quarter, month, day, begin_datetime, end_datetime):
+def collect_deal_quality(statistics_type, year=2018, quarter=1, month=1, day=1, begin_datetime="", end_datetime=""):
     result_list = []
     result = dict()
     try:
@@ -644,9 +625,9 @@ def collect_specific_dealtime_amount(statistics_type, year=1, quarter=1, month=1
             print(city_obj.city)
             for reason in ['线路故障', '设备故障']:
                 item = StatisticsSpecificDealTime(city=city_obj.city, reason=reason, statisticsType=statistics_type, yearNum=year, monthNum=month,
-                                                  dayNum=day)
+                                                  dayNum=day, quarterNum=quarter)
                 reason_item = StatisticsReason(city=city_obj.city, reason=reason, statisticsType=statistics_type, yearNum=year, monthNum=month,
-                                               dayNum=day)
+                                               dayNum=day, quarterNum=quarter)
                 line_qs = reason_qs.filter(malfunctionJudgment__contains=reason, city=city_obj.city).values('sum_dealtime', 'sum_amount')
                 sum_dealtime = 0
                 sum_amount = 0
@@ -658,16 +639,16 @@ def collect_specific_dealtime_amount(statistics_type, year=1, quarter=1, month=1
                 item_list.append(item)
                 reason_itme_list.append(reason_item)
             poweroff_item = StatisticsSpecificDealTime(city=city_obj.city, reason='停电', statisticsType=statistics_type, yearNum=year, monthNum=month,
-                                                       dayNum=day)
+                                                       dayNum=day, quarterNum=quarter)
             reason_poweroff_item = StatisticsSpecificDealTime(city=city_obj.city, reason='停电', statisticsType=statistics_type, yearNum=year,
                                                               monthNum=month,
-                                                              dayNum=day)
+                                                              dayNum=day, quarterNum=quarter)
             environment_item = StatisticsSpecificDealTime(city=city_obj.city, reason='动环故障', statisticsType=statistics_type, yearNum=year,
                                                           monthNum=month,
-                                                          dayNum=day)
+                                                          dayNum=day, quarterNum=quarter)
             reason_environment_item = StatisticsSpecificDealTime(city=city_obj.city, reason='动环故障', statisticsType=statistics_type, yearNum=year,
                                                                  monthNum=month,
-                                                                 dayNum=day)
+                                                                 dayNum=day, quarterNum=quarter)
             all_env_qs = reason_qs.filter(malfunctionJudgment__contains='动环故障', city=city_obj.city).values('malfunctionJudgment', 'sum_dealtime',
                                                                                                            'sum_amount')
             all_env_sum_dealtime = 0
@@ -694,9 +675,9 @@ def collect_specific_dealtime_amount(statistics_type, year=1, quarter=1, month=1
             reason_itme_list.append(reason_environment_item)
 
             other_item = StatisticsSpecificDealTime(city=city_obj.city, reason='其他', statisticsType=statistics_type, yearNum=year, monthNum=month,
-                                                    dayNum=day)
+                                                    dayNum=day, quarterNum=quarter)
             reason_other_item = StatisticsReason(city=city_obj.city, reason='其他', statisticsType=statistics_type, yearNum=year, monthNum=month,
-                                                 dayNum=day)
+                                                 dayNum=day, quarterNum=quarter)
             other_qs = reason_qs.filter(city=city_obj.city).exclude(malfunctionJudgment__contains='动环故障').exclude(
                 malfunctionJudgment__contains='线路故障').exclude(malfunctionJudgment__contains='设备故障').values('malfunctionJudgment', 'sum_dealtime',
                                                                                                            'sum_amount')
@@ -740,13 +721,13 @@ def get_specific_dealtime_amount(statistics_type, year, quarter, month, day, beg
             for city in cities:
                 result_item = dict()
                 city_qs = qs.filter(city=city)
-                result_item['area'] = DistrictCity.objects.get(city=City.objects.get(city=city).id).district.district
+                result_item['area'] = District.objects.get(id=district_id).district
                 result_item['city'] = city
-                result_item['line_time'] = str(city_qs.filter(reason='线路故障')[0].result)
-                result_item['power_time'] = str(city_qs.filter(reason='停电')[0].result)
-                result_item['environment_time'] = str(city_qs.filter(reason='动环故障')[0].result)
-                result_item['equipment_time'] = str(city_qs.filter(reason='设备故障')[0].result)
-                result_item['other_time'] = str(city_qs.filter(reason='其他')[0].result)
+                result_item['line_time'] = str(city_qs.filter(reason='线路故障')[0].result if city_qs.filter(reason='线路故障') else 0)
+                result_item['power_time'] = str(city_qs.filter(reason='停电')[0].result if city_qs.filter(reason='停电') else 0)
+                result_item['environment_time'] = str(city_qs.filter(reason='动环故障')[0].result if city_qs.filter(reason='动环故障') else 0)
+                result_item['equipment_time'] = str(city_qs.filter(reason='设备故障')[0].result if city_qs.filter(reason='设备故障') else 0)
+                result_item['other_time'] = str(city_qs.filter(reason='其他')[0].result if city_qs.filter(reason='其他') else 0)
                 result_list.append(result_item)
         return result_list
     elif statistics_type == 5:
@@ -756,7 +737,6 @@ def get_specific_dealtime_amount(statistics_type, year, quarter, month, day, beg
         for district_id in range(1, 6):
             cities = get_cities_by_district_id(district_id)
             for city in cities:
-                print(city)
                 result_item = dict()
                 city_qs = qs.filter(city=city)
                 result_item['area'] = District.objects.get(id=district_id).district
