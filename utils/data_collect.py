@@ -153,7 +153,7 @@ def get_district_order_amount(statistics_type, year, quarter, month, day, begin_
     elif statistics_type == 5:
         result_list = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values('city',
                                                                                                                   'profession').annotate(
-            result=Count('profession'))
+            result=Count('city'))
     else:
         result_list = StatisticsAmount.objects.filter(yearNum=year, statisticsType=1)
     for district_id in range(1, 6):
@@ -182,11 +182,11 @@ def get_district_order_amount(statistics_type, year, quarter, month, day, begin_
                 order_amount.append(amount_item)
             elif result_list and statistics_type == 5:
                 city_result_list = result_list.filter(city=i)
-                transmission = city_result_list.filter(profession="传输")[0].get('result', 0)
-                dynamics = city_result_list.filter(profession="动力")[0].get('result', 0)
-                exchange = city_result_list.filter(profession="交换")[0].get('result', 0)
-                AN = city_result_list.filter(profession="接入网")[0].get('result', 0)
-                wireless = city_result_list.filter(profession="无线")[0].get('result', 0)
+                transmission = city_result_list.get(profession="传输").get('result', 0)
+                dynamics = city_result_list.get(profession="动力").get('result', 0)
+                exchange = city_result_list.get(profession="交换").get('result', 0)
+                AN = city_result_list.get(profession="接入网").get('result', 0)
+                wireless = city_result_list.get(profession="无线").get('result', 0)
                 sum_amount = transmission + dynamics + exchange + AN + wireless
                 amount_item['transmission'] = transmission
                 amount_item['dynamics'] = dynamics
@@ -232,34 +232,54 @@ def collect_deal_in_time_rate(statistics_type, year, quarter=1, month=1, day=1, 
         if not StatisticsInTimeRate.objects.filter(yearNum=year, quarterNum=quarter, statisticsType=2).exists():
             begin_datetime = datetime.date(year, (quarter - 1) * 3 + 1, 1)
             end_datetime = datetime.datetime(year, quarter * 3, calendar.mdays[quarter * 3], 23, 59, 59)
-            deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
-            order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('city'))
+            deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime), isTimeOut='否').values(
+                'city').annotate(deal_in_time_amount=Count('city'))
+            if StatisticsAmount.objects.filter(yearNum=year, quarterNum=quarter, statisticsType=2).exists():
+                order_amount_queryset = StatisticsAmount.objects.filter(yearNum=year, quarterNum=quarter, statisticsType=2)
+                amount_exist = 1
+            else:
+                order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
+                    'city').annotate(order_amount=Count('city'))
+                amount_exist = 0
+
     elif statistics_type == 3:
         if not StatisticsInTimeRate.objects.filter(yearNum=year, monthNum=month, statisticsType=3).exists():
             begin_datetime = datetime.date(year, month, 1)
             end_datetime = datetime.datetime(year, month, calendar.mdays[month], 23, 59, 59)
-            deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
-            order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('city'))
+            deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime), isTimeOut='否').values(
+                'city').annotate(deal_in_time_amount=Count('city'))
+            if StatisticsAmount.objects.filter(yearNum=year, monthNum=month, statisticsType=3).exists():
+                order_amount_queryset = StatisticsAmount.objects.filter(yearNum=year, monthNum=month, statisticsType=3)
+                amount_exist = 1
+            else:
+                order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
+                    'city').annotate(order_amount=Count('city'))
+                amount_exist = 0
     elif statistics_type == 4:
         if not StatisticsInTimeRate.objects.filter(yearNum=year, monthNum=month, dayNum=day, statisticsType=4).exists():
             begin_datetime = datetime.date(year, month, day)
             end_datetime = begin_datetime + datetime.timedelta(days=7)
-            deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
-            order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('city'))
+            deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime), isTimeOut='否').values(
+                'city').annotate(deal_in_time_amount=Count('city'))
+            if StatisticsAmount.objects.filter(yearNum=year, monthNum=month, dayNum=day, statisticsType=4).exists():
+                order_amount_queryset = StatisticsAmount.objects.filter(yearNum=year, monthNum=month, dayNum=day, statisticsType=4)
+                amount_exist = 1
+            else:
+                order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
+                    'city').annotate(order_amount=Count('city'))
+                amount_exist = 0
     elif statistics_type == 1:
         if not StatisticsInTimeRate.objects.filter(yearNum=year, statisticsType=1).exists():
             begin_datetime = datetime.date(year, 1, 1)
             end_datetime = datetime.datetime(year, 12, 31, 23, 59, 59)
-            deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
-            order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('city'))
+            deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime), isTimeOut='否').values(
+                'city').annotate(deal_in_time_amount=Count('isTimeOut'))
+            if StatisticsAmount.objects.filter(yearNum=year, statisticsType=1).exists():
+                order_amount_queryset = StatisticsAmount.objects.filter(yearNum=year, statisticsType=1)
+                amount_exist = 1
+            else:
+                order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
+                    'city').annotate(order_amount=Count('city'))
     if deal_in_time_queryset and order_amount_queryset:
         rate_item_list = []
         for i in deal_in_time_queryset:
@@ -272,11 +292,13 @@ def collect_deal_in_time_rate(statistics_type, year, quarter=1, month=1, day=1, 
                 rate_item.dayNum = day
                 rate_item.statisticsType = statistics_type
                 rate_item.city = city
-                order_amount = order_amount_queryset.get(city=city).get('order_amount')
-                order_amount = order_amount if order_amount else 1
-                in_time_rate_amount = i.get('deal_in_time_amount')
-                in_time_rate_amount = in_time_rate_amount if in_time_rate_amount else 0
-                rate_item.result = round(in_time_rate_amount / order_amount * 100, 2) if order_amount != 0 else 0
+                order_amount = order_amount_queryset.filter(
+                    city=city).values('city').annotate(sum_result=Sum('result'))[0].get('sum_result',
+                                                                                        0) if amount_exist else order_amount_queryset.get(
+                    city=city).get(
+                    'order_amount')
+                in_time_rate_amount = i.get('deal_in_time_amount', 0)
+                rate_item.result = round(in_time_rate_amount / order_amount * 100, 2) if order_amount else 0
                 rate_item_list.append(rate_item)
         StatisticsInTimeRate.objects.bulk_create(rate_item_list)
 
@@ -306,9 +328,9 @@ def get_district_deal_in_time_rate(statistics_type, year, quarter, month, day, b
         qs = StatisticsInTimeRate.objects.filter(yearNum=year, statisticsType=1)
     else:
         qs = None
-        deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
+        deal_in_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime), isTimeOut='否'
                                                                ).values(
-            'city', 'isTimeOut').annotate(deal_in_time_amount=Count('isTimeOut')).filter(isTimeOut='否')
+            'city').annotate(deal_in_time_amount=Count('city'))
         order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
                                                                ).values(
             'city').annotate(order_amount=Count('city'))
@@ -354,7 +376,7 @@ def collect_deal_time(statistics_type, year, quarter=1, month=1, day=1, begin_da
                 'city').annotate(average_time=Avg('processTime'))
     elif statistics_type == 3:
         if not StatisticsDealTime.objects.filter(statisticsType=3, yearNum=year, monthNum=month).exists():
-            begin_datetime = datetime.date(year, (quarter - 1) * 3 + 1, 1)
+            begin_datetime = datetime.date(year, month, 1)
             end_datetime = datetime.datetime(year, month, calendar.mdays[month], 23, 59, 59)
             deal_time_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
                 'city').annotate(average_time=Avg('processTime'))
@@ -422,12 +444,12 @@ def get_district_deal_time(statistics_type, year, quarter, month, day, begin_dat
             deal_time_item = dict()
             deal_time_item['area'] = area
             deal_time_item['city'] = i
-            city_qs = qs.filter(city=i)[0]
+            city_qs = qs.filter(city=i)
             if qs and statistics_type != 5:
-                deal_time_item['AverageTime'] = city_qs.result
+                deal_time_item['AverageTime'] = city_qs[0].result
                 deal_time_list.append(deal_time_item)
-            elif qs and statistics_type == 5:
-                deal_time_item['AverageTime'] = round(city_qs.get('processTime') / 60, 2)
+            elif city_qs and statistics_type == 5:
+                deal_time_item['AverageTime'] = round(city_qs[0].get('processTime') / 60, 2)
                 deal_time_list.append(deal_time_item)
             else:
                 raise Exception("数据库中无相关数据，时间区间：%s-%s ;类型：%s，;"
@@ -453,8 +475,13 @@ def collect_over_48h_rate(statistics_type, year, quarter=1, month=1, day=1, begi
             over_48h_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
                                                                processTime__gt='2880').values(
                 'city').annotate(over_48h_amount=Count('city'))
-            order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('city'))
+            if StatisticsAmount.objects.filter(yearNum=year, quarterNum=quarter, statisticsType=2).exists():
+                order_amount_queryset = StatisticsAmount.objects.filter(yearNum=year, quarterNum=quarter, statisticsType=2)
+                amount_exist = 1
+            else:
+                order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
+                    'city').annotate(order_amount=Count('city'))
+                amount_exist = 0
     elif statistics_type == 3:
         if not StatisticsOver48Rate.objects.filter(statisticsType=3, yearNum=year, monthNum=month).exists():
             begin_datetime = datetime.date(year, month, 1)
@@ -462,8 +489,13 @@ def collect_over_48h_rate(statistics_type, year, quarter=1, month=1, day=1, begi
             over_48h_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
                                                                processTime__gt='2880').values(
                 'city').annotate(over_48h_amount=Count('city'))
-            order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('city'))
+            if StatisticsAmount.objects.filter(yearNum=year, monthNum=month, statisticsType=3).exists():
+                order_amount_queryset = StatisticsAmount.objects.filter(yearNum=year, monthNum=month, statisticsType=3)
+                amount_exist = 1
+            else:
+                order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
+                    'city').annotate(order_amount=Count('city'))
+                amount_exist = 0
     elif statistics_type == 4:
         if not StatisticsOver48Rate.objects.filter(statisticsType=4, yearNum=year, monthNum=month, dayNum=day).exists():
             begin_datetime = datetime.date(year, month, 1)
@@ -471,8 +503,13 @@ def collect_over_48h_rate(statistics_type, year, quarter=1, month=1, day=1, begi
             over_48h_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
                                                                processTime__gt='2880').values(
                 'city').annotate(over_48h_amount=Count('city'))
-            order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('city'))
+            if StatisticsAmount.objects.filter(yearNum=year, monthNum=month, dayNum=day, statisticsType=4).exists():
+                order_amount_queryset = StatisticsAmount.objects.filter(yearNum=year, monthNum=month, dayNum=day, statisticsType=4)
+                amount_exist = 1
+            else:
+                order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
+                    'city').annotate(order_amount=Count('city'))
+                amount_exist = 0
     elif statistics_type == 1:
         if not StatisticsOver48Rate.objects.filter(statisticsType=1, yearNum=year).exists():
             begin_datetime = datetime.date(year, 1, 1)
@@ -480,8 +517,12 @@ def collect_over_48h_rate(statistics_type, year, quarter=1, month=1, day=1, begi
             over_48h_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
                                                                processTime__gt='2880').values(
                 'city').annotate(over_48h_amount=Count('city'))
-            order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
-                'city').annotate(order_amount=Count('city'))
+            if StatisticsAmount.objects.filter(yearNum=year, statisticsType=1).exists():
+                order_amount_queryset = StatisticsAmount.objects.filter(yearNum=year, statisticsType=1)
+                amount_exist = 1
+            else:
+                order_amount_queryset = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values(
+                    'city').annotate(order_amount=Count('city'))
     if over_48h_queryset:
         rate_item_list = []
         for i in over_48h_queryset:
@@ -494,10 +535,12 @@ def collect_over_48h_rate(statistics_type, year, quarter=1, month=1, day=1, begi
                 rate_item.dayNum = day
                 rate_item.statisticsType = statistics_type
                 rate_item.city = city
-                order_amount = order_amount_queryset.get(city=city).get('order_amount')
-                order_amount = order_amount if order_amount else 1
-                over_48h_amount = i.get('over_48h_amount')
-                over_48h_amount = over_48h_amount if over_48h_amount else 0
+                order_amount = order_amount_queryset.filter(
+                    city=city).values('city').annotate(sum_result=Sum('result'))[0].get('sum_result',
+                                                                                        0) if amount_exist else order_amount_queryset.get(
+                    city=city).get(
+                    'order_amount')
+                over_48h_amount = i.get('over_48h_amount', 0)
                 rate_item.result = round(over_48h_amount / order_amount * 100, 2) if order_amount != 0 else 0
                 rate_item_list.append(rate_item)
         StatisticsOver48Rate.objects.bulk_create(rate_item_list)
@@ -622,7 +665,6 @@ def collect_specific_dealtime_amount(statistics_type, year=1, quarter=1, month=1
                                                                                                                 'malfunctionJudgment').annotate(
             sum_dealtime=Sum('processTime'), sum_amount=Count('*'))
         for city_obj in City.objects.all():
-            print(city_obj.city)
             for reason in ['线路故障', '设备故障']:
                 item = StatisticsSpecificDealTime(city=city_obj.city, reason=reason, statisticsType=statistics_type, yearNum=year, monthNum=month,
                                                   dayNum=day, quarterNum=quarter)
@@ -732,8 +774,7 @@ def get_specific_dealtime_amount(statistics_type, year, quarter, month, day, beg
         return result_list
     elif statistics_type == 5:
         qs = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime)).values('city',
-                                                                                                         'malfunctionJudgment').annotate(
-            sum_dealtime=Sum('processTime'), sum_amount=Count('*'))
+                                                                                                         'malfunctionJudgment', 'processTime')
         for district_id in range(1, 6):
             cities = get_cities_by_district_id(district_id)
             for city in cities:
@@ -741,50 +782,41 @@ def get_specific_dealtime_amount(statistics_type, year, quarter, month, day, beg
                 city_qs = qs.filter(city=city)
                 result_item['area'] = District.objects.get(id=district_id).district
                 result_item['city'] = city
-                line_qs = city_qs.filter(malfunctionJudgment__contains='线路故障')
-                line_dealtime = 0
-                line_amount = 0
-                for i in line_qs:
-                    line_dealtime += i.get('sum_dealtime', 0)
-                    line_amount += i.get('sum_amount', 0)
+                line_qs = city_qs.filter(malfunctionJudgment__contains='线路故障').values('city').annotate(sum_dealtime=Sum('processTime'),
+                                                                                                       sum_amount=Count('city'))[0]
+                line_dealtime = line_qs.get('sum_dealtime', 0)
+                line_amount = line_qs.get('sum_amount', 0)
                 result_item['line_time'] = str(round(line_dealtime / line_amount / 60, 2) if line_amount != 0 else 0)
                 result_item['line_amount'] = str(line_amount)
 
-                equipment_qs = city_qs.filter(malfunctionJudgment__contains='设备故障')
-                equipment_dealtime = 0
-                equipment_amount = 0
-                for i in equipment_qs:
-                    equipment_dealtime += i.get('sum_dealtime', 0)
-                    equipment_amount += i.get('sum_amount', 0)
+                equipment_qs = city_qs.filter(malfunctionJudgment__contains='设备故障').values('city').annotate(sum_dealtime=Sum('processTime'),
+                                                                                                            sum_amount=Count('city'))[0]
+                equipment_dealtime = equipment_qs.get('sum_dealtime', 0)
+                equipment_amount = equipment_qs.get('sum_amount', 0)
                 result_item['equipment_time'] = str(round(equipment_dealtime / equipment_amount / 60, 2) if equipment_amount != 0 else 0)
                 result_item['equipment_amount'] = str(equipment_amount)
 
-                environment_qs = city_qs.filter(malfunctionJudgment__contains='动环故障').exclude(malfunctionJudgment__contains='停电')
-                environment_dealtime = 0
-                environment_amount = 0
-                for i in environment_qs:
-                    environment_dealtime += i.get('sum_dealtime', 0)
-                    environment_amount += i.get('sum_amount', 0)
+                environment_qs = \
+                    city_qs.filter(malfunctionJudgment__contains='动环故障').exclude(malfunctionJudgment__contains='停电').values('city').annotate(
+                        sum_dealtime=Sum('processTime'), sum_amount=Count('city'))[0]
+                environment_dealtime = environment_qs.get('sum_dealtime', 0)
+                environment_amount = environment_qs.get('sum_amount', 0)
                 result_item['environment_time'] = str(round(environment_dealtime / environment_amount / 60, 2) if environment_amount != 0 else 0)
                 result_item['environment_amount'] = str(environment_amount)
 
-                power_qs = city_qs.filter(malfunctionJudgment__contains='停电')
-                power_dealtime = 0
-                power_amount = 0
-                for i in power_qs:
-                    power_dealtime += i.get('sum_dealtime', 0)
-                    power_amount += i.get('sum_amount', 0)
+                power_qs = \
+                    city_qs.filter(malfunctionJudgment__contains='停电').values('city').annotate(sum_dealtime=Sum('processTime'),
+                                                                                               sum_amount=Count('city'))[
+                        0]
+                power_dealtime = power_qs.get('sum_dealtime', 0)
+                power_amount = power_qs.get('sum_amount', 0)
                 result_item['power_time'] = str(round(power_dealtime / power_amount / 60, 2) if power_amount != 0 else 0)
                 result_item['power_amount'] = str(power_amount)
-
                 other_qs = city_qs.exclude(malfunctionJudgment__contains='线路故障').exclude(malfunctionJudgment__contains='设备故障').exclude(
-                    malfunctionJudgment__contains='动环故障')
+                    malfunctionJudgment__contains='动环故障').values('city').annotate(sum_dealtime=Sum('processTime'), sum_amount=Count('city'))[0]
 
-                other_dealtime = 0
-                other_amount = 0
-                for i in other_qs:
-                    other_dealtime += i.get('sum_dealtime', 0)
-                    other_amount += i.get('sum_amount', 0)
+                other_dealtime = other_qs.get('sum_dealtime', 0)
+                other_amount = other_qs.get('sum_amount', 0)
                 result_item['other_time'] = str(round(other_dealtime / other_amount / 60, 2) if other_amount != 0 else 0)
                 result_item['other_amount'] = str(other_amount)
 
