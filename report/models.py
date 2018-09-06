@@ -140,3 +140,17 @@ class StatisticsReason(models.Model):
     class Meta:
         # managed = False
         db_table = 'report_statistics_reason'
+
+
+class StatisticsReceive(models.Model):
+    city = models.CharField(max_length=10, blank=True, null=True)
+    yearNum = models.SmallIntegerField(db_column='yearNum', blank=True, null=True)
+    monthNum = models.IntegerField(db_column='monthNum', blank=True, null=True)
+    quarterNum = models.IntegerField(db_column='quarterNum', blank=True, null=True)
+    dayNum = models.IntegerField(blank=True, null=True)
+    statisticsType = models.IntegerField(db_column='statisticsType', blank=True, null=True)
+    result = models.FloatField(blank=True, null=True)
+
+    class Meta:
+        # managed = False
+        db_table = 'report_statistics_receive'

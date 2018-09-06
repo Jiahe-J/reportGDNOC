@@ -748,28 +748,39 @@ def get_specific_dealtime_amount(statistics_type, year, quarter, month, day, beg
     result_list = []
     if statistics_type == 2:
         qs = StatisticsSpecificDealTime.objects.filter(statisticsType=2, yearNum=year, quarterNum=quarter)
+        amount_qs = StatisticsReason.objects.filter(statisticsType=2, yearNum=year, quarterNum=quarter)
     elif statistics_type == 3:
         qs = StatisticsSpecificDealTime.objects.filter(statisticsType=3, yearNum=year, monthNum=month)
+        amount_qs = StatisticsReason.objects.filter(statisticsType=3, yearNum=year, monthNum=month)
     elif statistics_type == 4:
         qs = StatisticsSpecificDealTime.objects.filter(statisticsType=4, yearNum=year, monthNum=month, dayNum=day)
+        amount_qs = StatisticsReason.objects.filter(statisticsType=4, yearNum=year, monthNum=month, dayNum=day)
     elif statistics_type == 1:
         qs = StatisticsSpecificDealTime.objects.filter(statisticsType=1, yearNum=year)
+        amount_qs = StatisticsReason.objects.filter(statisticsType=1, yearNum=year)
     else:
         qs = []
-    if qs and statistics_type != 5:
+        amount_qs = []
+    if qs and amount_qs and statistics_type != 5:
         # 按地区获取结果
         for district_id in range(1, 6):
             cities = get_cities_by_district_id(district_id)
             for city in cities:
                 result_item = dict()
                 city_qs = qs.filter(city=city)
+                city_amount_qs = amount_qs.filter(city=city)
                 result_item['area'] = District.objects.get(id=district_id).district
                 result_item['city'] = city
                 result_item['line_time'] = str(city_qs.filter(reason='线路故障')[0].result if city_qs.filter(reason='线路故障') else 0)
+                result_item['line_amount'] = str(city_amount_qs.filter(reason='线路故障')[0].result if city_qs.filter(reason='线路故障') else 0)
                 result_item['power_time'] = str(city_qs.filter(reason='停电')[0].result if city_qs.filter(reason='停电') else 0)
+                result_item['power_amount'] = str(city_amount_qs.filter(reason='停电')[0].result if city_qs.filter(reason='停电') else 0)
                 result_item['environment_time'] = str(city_qs.filter(reason='动环故障')[0].result if city_qs.filter(reason='动环故障') else 0)
+                result_item['environment_amount'] = str(city_amount_qs.filter(reason='动环故障')[0].result if city_qs.filter(reason='动环故障') else 0)
                 result_item['equipment_time'] = str(city_qs.filter(reason='设备故障')[0].result if city_qs.filter(reason='设备故障') else 0)
+                result_item['equipment_amount'] = str(city_amount_qs.filter(reason='设备故障')[0].result if city_qs.filter(reason='设备故障') else 0)
                 result_item['other_time'] = str(city_qs.filter(reason='其他')[0].result if city_qs.filter(reason='其他') else 0)
+                result_item['other_amount'] = str(city_amount_qs.filter(reason='其他')[0].result if city_qs.filter(reason='其他') else 0)
                 result_list.append(result_item)
         return result_list
     elif statistics_type == 5:

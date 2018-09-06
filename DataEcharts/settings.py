@@ -24,7 +24,7 @@ SECRET_KEY = 'c!=*nnl*hn$jrtdvgx1@e$q=_29t_q$g9t2&5#cc%al(7iqjks'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ["*"]
 
 # Application definition
 
@@ -85,7 +85,7 @@ ROOT_URLCONF = 'DataEcharts.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [os.path.join(BASE_DIR, 'templates')],
+        'DIRS': [os.path.join(BASE_DIR, 'templates'), os.path.join(BASE_DIR, 'vue-dist')],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -107,10 +107,14 @@ WSGI_APPLICATION = 'DataEcharts.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'data_echarts',
-        'USER': 'data_echarts',
-        'PASSWORD': '123456Qw!',
-        'HOST': '132.96.194.30',
+        # 'NAME': 'data_echarts',
+        # 'HOST': 'localhost',
+        # 'USER': 'root',
+        # 'PASSWORD': '123456',
+        'NAME': 'DjangoEcharts',
+        'USER': 'root',
+        'PASSWORD': '123456',
+        'HOST': 'localhost',
     }
 }
 
@@ -152,6 +156,7 @@ STATIC_URL = '/static/'
 
 STATICFILES_DIRS = (
     os.path.join(BASE_DIR, 'static').replace('\\', '/'),
+    os.path.join(BASE_DIR, 'vue-dist/static').replace('\\', '/')
 )
 
 DJANGO_ECHARTS = {

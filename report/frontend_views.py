@@ -10,7 +10,7 @@ from .demo_data import FACTORY
 
 
 class IndexView(TemplateView):
-    template_name = 'index.html'
+    template_name = 'report.html'
 
 
 class FrontendEchartsTemplate(TemplateView):
@@ -72,7 +72,6 @@ class ReportDemoView(EChartsFrontView):
         echarts_instance = self.get_echarts_instance(**kwargs)
         # print(year, quarter)
         # print(kwargs.get('year'))
-        print(echarts_instance)
         return JsonResponse(data=echarts_instance, safe=False)
 
 
