@@ -16,6 +16,7 @@ from django.db import IntegrityError
 from openpyxl import load_workbook
 
 from report.models import MalfunctionData
+from utils.fetch_Ne import *
 
 
 def deal_in_time_rate_parser():
@@ -113,24 +114,67 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=False):
     for row in rows:
         malfunctionData = MalfunctionData()
         malfunctionData.city = row[1].value
-        malfunctionData.profession = row[2].value
+        profession = row[2].value
+        malfunctionData.originProfession = profession if profession != 'WIFI' else '无线'
         malfunctionData.department = row[3].value
         malfunctionData.malfunctionCity = row[4].value
         malfunctionData.receiptNumber = row[5].value
         malfunctionData.receiptSerialNumber = row[6].value
         malfunctionData.receiptStatus = row[7].value
-        malfunctionData.title = row[8].value
-        malfunctionData.category = row[9].value
+        title = row[8].value
+        if title.__contains__('条告警(含'):
+            print(title)
+            pattern = re.compile(r'(\(\d+条告警)')
+            index = title.index(re.search(pattern, title).group(1))
+            title = title[:index]
+        malfunctionData.title = title
+        category = row[9].value
+        malfunctionData.category = category
+        malfunctionSource = row[13].value
+        mtype = row[17].value
+        if category:
+            if category.__contains__('4G网络'):
+                malfunctionData.profession = '4G网络'
+                if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
+                    malfunctionData.ne = fetch_4G(title)
+            elif category.__contains__('3G网络'):
+                malfunctionData.profession = 'CDMA网络'
+                if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
+                    malfunctionData.ne = fetch_CDMA(title)
+            elif category.__contains__('直放站'):
+                malfunctionData.profession = '直放站'
+                if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
+                    malfunctionData.ne = fetch_RPT(title)
+            elif category.__contains__('本地传输网') or category.__contains__('本地光缆'):
+                malfunctionData.profession = '传输'
+                if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
+                    malfunctionData.ne = fetch_TransmissionNetwork(title)
+            elif category.__contains__('光接入网') or category.__contains__('PON'):
+                malfunctionData.profession = '光网络'
+                if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
+                    malfunctionData.ne = fetch_OpticalNetwork(title)
+            elif category.__contains__('交换接入网') or category.__contains__('AG'):
+                malfunctionData.profession = '交换'
+                if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
+                    malfunctionData.ne = fetch_SwitchNetwork(title)
+            elif category.__contains__('数据接入网'):
+                malfunctionData.profession = '数据'
+                if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
+                    malfunctionData.ne = fetch_DataNetwork(title)
+            if profession == '动力' and malfunctionSource == '集中告警系统报故障' and mtype == '处理':
+                malfunctionData.profession = '动力'
+                malfunctionData.ne = fetch_Dynamic(title)
+
         malfunctionData.distributeTime = datetime.datetime.strptime(row[10].value, '%Y-%m-%d %H:%M:%S')
         processTime = row[11].value
         malfunctionData.processTime = processTime if processTime else 0
         hangTime = row[12].value
         malfunctionData.hangTime = hangTime if hangTime else 0
-        malfunctionData.malfunctionSource = row[13].value
+        malfunctionData.malfunctionSource = malfunctionSource
         malfunctionData.isTimeOut = row[14].value
         malfunctionData.dutyDepartment = row[15].value
         malfunctionData.conclusion = row[16].value
-        malfunctionData.type = row[17].value
+        malfunctionData.type = mtype
         malfunctionData.reasonClassification = row[18].value
         malfunctionData.malfunctionJudgment = row[19].value
         malfunctionData.malfunctionReason = row[20].value
@@ -145,7 +189,7 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=False):
         else:
             malfunctionList.append(malfunctionData)
 
-        if (len(malfunctionList) == 2000):
+        if (len(malfunctionList) == 4000):
             try:
                 MalfunctionData.objects.bulk_create(malfunctionList)
                 malfunctionList = []

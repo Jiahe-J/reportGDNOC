@@ -13,17 +13,18 @@ class MalfunctionData(models.Model):
     title = models.CharField(max_length=200)
     category = models.CharField(max_length=200, blank=True, null=True)
     distributeTime = models.DateTimeField(db_column='distributeTime', db_index=True)
-    processTime = models.IntegerField(db_column='processTime', blank=True, null=True, db_index=True)
+    processTime = models.IntegerField(db_column='processTime', blank=True, null=True)
     hangTime = models.IntegerField(db_column='hangTime')
-    malfunctionSource = models.CharField(db_column='malfunctionSource', max_length=50, blank=True, null=True)
+    malfunctionSource = models.CharField(db_column='malfunctionSource', max_length=50, blank=True, null=True, db_index=True)
     isTimeOut = models.CharField(db_column='isTimeOut', max_length=2, blank=True, null=True, db_index=True)
     dutyDepartment = models.CharField(db_column='dutyDepartment', max_length=200, blank=True, null=True)
-    conclusion = models.CharField(max_length=1024, blank=True, null=True)
-    type = models.CharField(max_length=20, blank=True, null=True)
+    conclusion = models.CharField(max_length=1024, blank=True, null=True, db_index=True)
+    type = models.CharField(max_length=20, blank=True, null=True, db_index=True)
     reasonClassification = models.CharField(db_column='reasonClassification', max_length=50, blank=True, null=True)
-    malfunctionJudgment = models.CharField(db_column='malfunctionJudgment', max_length=50, blank=True, null=True, db_index=True)
+    malfunctionJudgment = models.CharField(db_column='malfunctionJudgment', max_length=50, blank=True, null=True)
     malfunctionReason = models.CharField(db_column='malfunctionReason', max_length=50, blank=True, null=True)
     originProfession = models.CharField(db_column='originProfession', max_length=20, blank=True, null=True)
+    ne = models.CharField(max_length=200, blank=True, null=True, db_index=True)
 
     class Meta:
         # managed = False
