@@ -146,7 +146,7 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=False):
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_RPT(title)
             elif category.__contains__('本地传输网') or category.__contains__('本地光缆'):
-                malfunctionData.profession = '传输'
+                malfunctionData.profession = '本地传输'
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_TransmissionNetwork(title)
             elif category.__contains__('光接入网') or category.__contains__('PON'):
@@ -154,7 +154,7 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=False):
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_OpticalNetwork(title)
             elif category.__contains__('交换接入网') or category.__contains__('AG'):
-                malfunctionData.profession = '交换'
+                malfunctionData.profession = '交换接入网'
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_SwitchNetwork(title)
             elif category.__contains__('数据接入网'):
