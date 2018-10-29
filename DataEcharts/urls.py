@@ -14,7 +14,10 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path, include
+from rest_framework_jwt.views import obtain_jwt_token, verify_jwt_token
+
 from report import frontend_views
+from report.user_info import UserInfoView
 
 urlpatterns = [
     path('report/', include('report.urls', namespace='report')),
@@ -28,6 +31,10 @@ urlpatterns = [
     path('options/simplePie/', frontend_views.SimplePieView.as_view()),
     path('options/wordCloud/', frontend_views.WordCloudView.as_view()),
     path('options/reportBar/', frontend_views.ReportDemoView.as_view()),
-    path('upload_file/', frontend_views.TestView.as_view())
+    path('upload_file/', frontend_views.TestView.as_view()),
+    # JWT
+    path('api-token-auth/', obtain_jwt_token),
+    path('api-token-verify/', verify_jwt_token),
+    path('user/', UserInfoView.as_view())
 
 ]

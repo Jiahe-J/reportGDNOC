@@ -51,7 +51,7 @@ def fetch_CDMA(title):
 # 传输专业故障
 """
 category___contains=  本地传输 本地光缆
-qs = MalfunctionData.objects.filter(profession='传输', malfunctionSource='集中告警系统报故障')
+qs = MalfunctionData.objects.filter(originProfession='传输', malfunctionSource='集中告警系统报故障')
 """
 
 
@@ -81,7 +81,7 @@ def fetch_TransmissionNetwork(title):
 
 # 光网络专业故障
 """
-qs = MalfunctionData.objects.filter(profession='光网络', malfunctionSource='集中告警系统报故障')
+qs = MalfunctionData.objects.filter(originProfession='光网络', malfunctionSource='集中告警系统报故障')
 """
 
 
@@ -145,7 +145,7 @@ def fetch_Dynamic(title):
                 return ne
             for i in range(0, 9):
                 if rs.group(9 - i):
-                    print(i, rs.group(i))
+                    # print(i, rs.group(i))
                     return rs.group(9 - i)
     elif title.__contains__('市电停电'):
         pattern = re.compile(r'(.*市电停电: )(.*)')

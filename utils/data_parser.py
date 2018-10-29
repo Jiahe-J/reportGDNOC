@@ -15,8 +15,19 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
 from openpyxl import load_workbook
 
-from report.models import MalfunctionData
+from report.models import MalfunctionData, District, StatisticsMonthlyQuality, MalfunctionLongtime, MalfunctionOnTrack
 from utils.fetch_Ne import *
+
+PRD_1 = ['深圳', '广州', '东莞', '佛山', ]
+district_PRD_1 = District.objects.get(pk=1)
+PRD_2 = ['中山', '惠州', '江门', '珠海']
+district_PRD_2 = District.objects.get(pk=2)
+GD_E = ['汕头', '揭阳', '潮州', '汕尾']
+district_GD_E = District.objects.get(pk=3)
+GD_W = ['湛江', '茂名', '阳江', '云浮']
+district_GD_W = District.objects.get(pk=4)
+GD_N = ['肇庆', '清远', '阳江', '梅州', '韶关', '河源']
+district_GD_N = District.objects.get(pk=5)
 
 
 def deal_in_time_rate_parser():
@@ -110,86 +121,115 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=False):
 
     malfunctionList = []
     rows = sheet.rows
-    rows.__next__()
+    head_row = rows.__next__()
+    field_list = []
+    for cell in head_row:
+        field_list.append(cell.value)
     for row in rows:
         malfunctionData = MalfunctionData()
-        malfunctionData.city = row[1].value
-        profession = row[2].value
-        malfunctionData.originProfession = profession if profession != 'WIFI' else '无线'
-        malfunctionData.department = row[3].value
-        malfunctionData.malfunctionCity = row[4].value
-        malfunctionData.receiptNumber = row[5].value
-        malfunctionData.receiptSerialNumber = row[6].value
-        malfunctionData.receiptStatus = row[7].value
-        title = row[8].value
+        malfunctionData.city = city = row[field_list.index('单位')].value
+        if city in PRD_1:
+            malfunctionData.district = district_PRD_1
+        elif city in PRD_2:
+            malfunctionData.district = district_PRD_2
+        elif city in GD_E:
+            malfunctionData.district = district_GD_E
+        elif city in GD_W:
+            malfunctionData.district = district_GD_W
+        elif city in GD_N:
+            malfunctionData.district = district_GD_N
+        profession = row[field_list.index('专业')].value
+        malfunctionData.profession = profession if profession != 'WIFI' else '无线'
+        malfunctionData.department = row[field_list.index('部门')].value
+        malfunctionData.malfunctionCity = row[field_list.index('故障地市')].value
+        malfunctionData.receiptNumber = row[field_list.index('故障单号')].value
+        malfunctionData.receiptSerialNumber = row[field_list.index('工单编号')].value
+        malfunctionData.receiptStatus = row[field_list.index('单据状态')].value
+        title = row[field_list.index('故障标题')].value
         if title.__contains__('条告警(含'):
-            print(title)
+            # print(title)
             pattern = re.compile(r'(\(\d+条告警)')
             index = title.index(re.search(pattern, title).group(1))
             title = title[:index]
         malfunctionData.title = title
-        category = row[9].value
+        category = row[field_list.index('故障种类')].value
         malfunctionData.category = category
-        malfunctionSource = row[13].value
-        mtype = row[17].value
+        malfunctionSource = row[field_list.index('故障来源')].value
+        mtype = row[field_list.index('类型')].value
+        # 由故障种类划分源专业
         if category:
             if category.__contains__('4G网络'):
-                malfunctionData.profession = '4G网络'
+                malfunctionData.originProfession = 'Net_4G'
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_4G(title)
             elif category.__contains__('3G网络'):
-                malfunctionData.profession = 'CDMA网络'
+                malfunctionData.originProfession = 'Net_CDMA'
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_CDMA(title)
             elif category.__contains__('直放站'):
-                malfunctionData.profession = '直放站'
+                malfunctionData.originProfession = 'Repeater'
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_RPT(title)
             elif category.__contains__('本地传输网') or category.__contains__('本地光缆'):
-                malfunctionData.profession = '本地传输'
+                malfunctionData.originProfession = 'Transmission'
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_TransmissionNetwork(title)
             elif category.__contains__('光接入网') or category.__contains__('PON'):
-                malfunctionData.profession = '光网络'
+                malfunctionData.originProfession = 'Net_Optical'
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_OpticalNetwork(title)
             elif category.__contains__('交换接入网') or category.__contains__('AG'):
-                malfunctionData.profession = '交换接入网'
+                malfunctionData.originProfession = 'Exchange'
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_SwitchNetwork(title)
             elif category.__contains__('数据接入网'):
-                malfunctionData.profession = '数据'
+                malfunctionData.originProfession = 'Data'
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_DataNetwork(title)
             if profession == '动力' and malfunctionSource == '集中告警系统报故障' and mtype == '处理':
-                malfunctionData.profession = '动力'
+                malfunctionData.originProfession = 'Dynamics'
                 malfunctionData.ne = fetch_Dynamic(title)
 
-        malfunctionData.distributeTime = datetime.datetime.strptime(row[10].value, '%Y-%m-%d %H:%M:%S')
-        processTime = row[11].value
+        malfunctionData.distributeTime = datetime.datetime.strptime(row[field_list.index('派单时间')].value, '%Y-%m-%d %H:%M:%S')
+        processTime = row[field_list.index('处理时长（分钟）')].value
         malfunctionData.processTime = processTime if processTime else 0
-        hangTime = row[12].value
+        hangTime = row[field_list.index('挂起时长（分钟）')].value
         malfunctionData.hangTime = hangTime if hangTime else 0
         malfunctionData.malfunctionSource = malfunctionSource
-        malfunctionData.isTimeOut = row[14].value
-        malfunctionData.dutyDepartment = row[15].value
-        malfunctionData.conclusion = row[16].value
+        malfunctionData.isTimeOut = row[field_list.index('是否处理超时')].value
+        malfunctionData.dutyDepartment = row[field_list.index('责任部门')].value
+        malfunctionData.conclusion = row[field_list.index('结单信息')].value
         malfunctionData.type = mtype
-        malfunctionData.reasonClassification = row[18].value
-        malfunctionData.malfunctionJudgment = row[19].value
-        malfunctionData.malfunctionReason = row[20].value
-        malfunctionData.originProfession = row[21].value
+        malfunctionData.reasonClassification = row[field_list.index('原因分类')].value
+        malfunctionJudgment = row[field_list.index('故障定位')].value
+        malfunctionData.malfunctionJudgment = malfunctionJudgment
+        if malfunctionJudgment:
+            if malfunctionJudgment.__contains__('其它') or malfunctionJudgment.__contains__('其他'):
+                malfunctionData.sortedReason = 1
+            elif malfunctionJudgment.__contains__('动环') \
+                    or malfunctionJudgment.__contains__('动力监控设备') \
+                    or malfunctionJudgment.__contains__('空调') \
+                    or malfunctionJudgment.__contains__('配电') \
+                    or malfunctionJudgment.__contains__('电源'):
+                malfunctionData.sortedReason = 5
+            elif malfunctionJudgment.__contains__('数据配置'):
+                malfunctionData.sortedReason = 2
+            elif malfunctionJudgment.__contains__('设备故障'):
+                malfunctionData.sortedReason = 3
+            elif malfunctionJudgment.__contains__('线路故障'):
+                malfunctionData.sortedReason = 4
+        malfunctionData.malfunctionReason = row[field_list.index('故障原因')].value
         # 解决导入重复数据,但插入速度慢
         if has_repeat_data:
             try:
-                MalfunctionData.objects.get(receiptNumber=row[5].value)
+                MalfunctionData.objects.get(receiptNumber=row[field_list.index('故障单号')].value)
                 malfunctionData.save()
             except ObjectDoesNotExist:
                 malfunctionList.append(malfunctionData)
         else:
             malfunctionList.append(malfunctionData)
 
-        if (len(malfunctionList) == 4000):
+        if (len(malfunctionList) == 1000):
             try:
                 MalfunctionData.objects.bulk_create(malfunctionList)
                 malfunctionList = []
@@ -197,3 +237,117 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=False):
                 status = '有重复数据,请选择"替换导入"方式'
                 return status
     MalfunctionData.objects.bulk_create(malfunctionList)
+
+
+# 解析"指标.xls"
+def parse_indicators_xls(file_contents):
+    # f = open('/Users/silenthz/Desktop/数据可视化项目/数据清单/指标.xls', 'rb')
+    # file_contents = f.read()
+    workbook = xlrd.open_workbook(file_contents=file_contents)
+    sheet = workbook.sheet_by_index(0)
+    # 数据行数
+    nrows = sheet.nrows
+    # result_list = []
+    StatisticsMonthlyQuality.objects.all().delete()
+    for i in range(2, nrows):
+        # print(sheet.cell_value(i, 0))
+        city = sheet.cell_value(i, 0)
+        if city != '??' and city != '无线' and city != '传输' and city != '动力' and city != '交换' and city != '接入网':
+            # dt = dict()
+            # dt['city'] = city
+            # dt['sign_rate'] = sheet.cell_value(i, 4)
+            # dt['auto_rate'] = sheet.cell_value(i, 11)
+            # dt['deal_time'] = sheet.cell_value(i, 18)
+            # result_list.append(dt)
+
+            q_obj = StatisticsMonthlyQuality()
+            q_obj.city = city
+            q_obj.signRate = sheet.cell_value(i, 4)
+            q_obj.autoRate = sheet.cell_value(i, 11)
+            q_obj.dealRate = sheet.cell_value(i, 18)
+            q_obj.save()
+    # return result_list
+
+
+# 解析长历时工单.xls
+def parse_malfunction_longtime(file_contents):
+    # f = open('/Users/silenthz/Desktop/周报数据清单/超72小时工单.xls', 'rb')
+    # file_contents = f.read()
+
+    # 删除旧数据
+    MalfunctionLongtime.objects.all().delete()
+    workbook = xlrd.open_workbook(file_contents=file_contents)
+    sheet = workbook.sheet_by_index(0)
+    field_list = []
+    item_list = []
+    for field in sheet.row(0):
+        field_list.append(field.value)
+    for i in range(1, sheet.nrows):
+        title = sheet.row(i)[field_list.index('故障标题')].value
+        category = sheet.row(i)[field_list.index('故障种类')].value
+        city = sheet.row(i)[field_list.index('故障地市')].value
+        processTime = sheet.row(i)[field_list.index('故障历时(分)')].value
+        processTime = processTime if processTime else 0
+        errorPosition = sheet.row(i)[field_list.index('故障位置')].value
+        receiptNumber = sheet.row(i)[field_list.index('故障单号')].value
+        if title.__contains__('新开') and processTime >= 4320 and city == '广州':
+            pass
+        elif title.__contains__('遗留跟踪'):
+            pass
+        elif category.__contains__('集团NOC电子工单') or category.__contains__('网络安全') or category.__contains__('疑似光缆段故障'):
+            pass
+        elif processTime >= 4320 and category.__contains__('业务感知'):
+            pass
+        elif title.__contains__('出入') and city == '省公司':
+            pass
+        elif receiptNumber.__contains__('2015') or receiptNumber.__contains__('2016'):
+            pass
+        else:
+            item = MalfunctionLongtime()
+            item.receiptNumber = receiptNumber
+            item.title = title
+            item.category = category
+            item.city = city
+            item.processTime = processTime
+            item.errorPosition = errorPosition
+            # item[0].save()
+            item_list.append(item)
+            if len(item_list) == 2000:
+                MalfunctionLongtime.objects.bulk_create(item_list)
+                item_list = []
+    MalfunctionLongtime.objects.bulk_create(item_list)
+
+
+# 解析"遗留跟踪单.xls"
+def parse_malfunction_track(file_contents):
+    """
+    是否删除旧数据？
+    """
+    MalfunctionOnTrack.objects.all().delete()
+    f = open('/Users/silenthz/Desktop/周报数据清单/遗留跟踪单.xls', 'rb')
+    file_contents = f.read()
+    workbook = xlrd.open_workbook(file_contents=file_contents)
+    sheet = workbook.sheet_by_index(0)
+    field_list = []
+
+    for field in sheet.row(0):
+        field_list.append(field.value)
+    for i in range(1, sheet.nrows):
+        title = sheet.row(i)[field_list.index('故障标题')].value
+        category = sheet.row(i)[field_list.index('故障种类')].value
+        receiptStatus = sheet.row(i)[field_list.index('故障状态')].value
+        city = sheet.row(i)[field_list.index('故障地市')].value
+        createTime = sheet.row(i)[field_list.index('建单时间')].value
+        receiptNumber = sheet.row(i)[field_list.index('故障单号')].value
+        if category.__contains__('业务单'):
+            pass
+        elif city == '省公司' and category.__contains__("IPRAN"):
+            pass
+        else:
+            item = MalfunctionOnTrack.objects.get_or_create(receiptNumber=receiptNumber)
+            item[0].title = title
+            item[0].category = category
+            item[0].receiptStatus = receiptStatus
+            item[0].city = city
+            item[0].createTime = createTime
+            item[0].save()
