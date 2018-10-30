@@ -377,7 +377,7 @@ class Worst10DepartmentView(APIView):
                 for rs in rs_list:
                     StatisticsMonthlyWorst10Department(yearNum=year, monthNum=month,
                                                        department=rs['department'],
-                                                       totalAmount=rs['intime_amount'],
+                                                       totalAmount=rs['total_amount'],
                                                        intimeAmount=rs['intime_amount'],
                                                        overtimeAmount=rs['timeout_admount'],
                                                        intimeRate=rs['intime_rate']
