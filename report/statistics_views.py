@@ -59,7 +59,6 @@ class OrderAmountView(View):
 
 
 class IntimeRateView(View):
-
     def get(self, request, begin_date, end_date):
         # print(begin_date, end_date)
         st = datetime.datetime.now()
@@ -113,7 +112,7 @@ class DealQualityView(View):
         st = datetime.datetime.now()
         result_json = dict()
         try:
-            qs = StatisticsQuarterlyQuality.objects.filter(beginDate=begin_date, endDate=end_date)
+            qs = StatisticsQuarterlyQuality.objects.filter(beginDate=begin_date, endDate=end_date, area__isnull=False)
             if qs:
                 result_json = dict(result=[])
                 for item in qs:
@@ -129,19 +128,21 @@ class DealQualityView(View):
                 result_json = collect_deal_quality(5, 2018, 1, 1, 1, begin_date, end_date)
                 rs = result_json['result']
                 for r in rs:
-                    StatisticsQuarterlyQuality(beginDate=begin_date, endDate=end_date,
-                                               area=r.get('area'),
-                                               city=r.get('city', ''),
-                                               IntimeRate=r.get('IntimeRate', ''),
-                                               SignRate=r.get('SignRate', ''),
-                                               Over48Rate=r.get('Over48Rate', ''),
-                                               AverageTime=r.get('AverageTime', '')).save()
-                result_json['process_time'] = str(datetime.datetime.now() - st)
-                return JsonResponse(data=result_json, safe=False)
+                    StatisticsQuarterlyQuality.objects.get_or_create(beginDate=begin_date, endDate=end_date,
+                                                                     city=r.get('city', ''))
+                    StatisticsQuarterlyQuality.objects.filter(beginDate=begin_date, endDate=end_date,
+                                                              city=r.get('city', '')).update(area=r.get('area'),
+                                                                                             IntimeRate=r.get('IntimeRate', ''),
+                                                                                             SignRate=r.get('SignRate', ''),
+                                                                                             Over48Rate=r.get('Over48Rate', ''),
+                                                                                             AverageTime=r.get('AverageTime', ''))
+                    result_json['process_time'] = str(datetime.datetime.now() - st)
+            return JsonResponse(data=result_json, safe=False)
+
         except Exception as e:
             result_json['status'] = 'fail'
             result_json['msg'] = str(e)
-        return JsonResponse(data=result_json, safe=False)
+            return JsonResponse(data=result_json, safe=False)
 
 
 class SpecificDealtimeAmountView(View):
@@ -214,7 +215,7 @@ class Top10NeView(View):
                     rs_dict.update(rs)
                     for item in rs[profession]:
                         value_list = list(item.values())
-                        StatisticsTop10Ne(index=value_list[0],
+                        StatisticsTop10Ne(index=str(value_list[0]),
                                           city=value_list[1],
                                           ne=value_list[2],
                                           amount=value_list[3],
@@ -318,32 +319,53 @@ class DistrictReasonView(APIView):
 class FileUploadView(APIView):
     parser_classes = (MultiPartParser, FileUploadParser,)
 
-    # def post(self, request，filename):
-    def post(self, request):
+    def post(self, request, filename):
+        # def post(self, request):
+
+        st = datetime.datetime.now()
+        result_json = dict()
+        try:
+            # 使用binary方式上传文件
+            file = request.FILES.get('file')
+            if filename == 'mf_data':
+                parse_malfunction_data_xlsx(file)
+                result_json['msg'] = '故障数据上传完成'
+            if filename == 'longtime_data':
+                parse_malfunction_longtime(file.read())
+                result_json['msg'] = '超72小时工单文件上传完成'
+            if filename == 'track_data':
+                parse_malfunction_track(file.read())
+                result_json['msg'] = '遗留跟踪单文件上传完成'
+            # print(len(file))
+            # print(filename)
+            # print(file.name)
+            # rs_list = parse_indicators_xls(file.read())
+
+            result_json['process_time'] = str(datetime.datetime.now() - st)
+            result_json['status'] = 'success'
+            return JsonResponse(data=result_json, safe=False)
+        except Exception as e:
+            result_json['status'] = 'fail'
+            result_json['msg'] = str(e)
+            return JsonResponse(data=result_json, safe=False)
+
+
+# 指标文件.xls上传
+class IndicatorUploadView(APIView):
+    # parser_classes = (MultiPartParser, FileUploadParser,)
+
+    def post(self, request, year, num):
+        # def post(self, request):
 
         st = datetime.datetime.now()
         result_json = dict()
         try:
             files = request.FILES.getlist('rate_data')
-            if files:
-                parse_indicators_xls(files[0].read())
-                result_json['msg'] = '指标文件上传完成'
-            files = request.FILES.getlist('mf_data')
-            if files:
-                parse_malfunction_data_xlsx(files[0])
-                result_json['msg'] = '故障数据上传完成'
-            files = request.FILES.getlist('longtime_data')
-            if files:
-                parse_malfunction_longtime(files[0].read())
-                result_json['msg'] = '超72小时工单文件上传完成'
-            files = request.FILES.getlist('track_data')
-            if files:
-                parse_malfunction_track(files[0].read())
-                result_json['msg'] = '遗留跟踪单文件上传完成'
-            # 使用binary方式上传文件
-            # file = request.FILES.get('file')
-            # rs_list = parse_indicators_xls(file.read())
-
+            if request.POST.get('type', '') == 'month':
+                parse_indicators_xls(files[0].read(), type='month', year=year, month=num)
+            elif request.POST.get('type', '') == 'quarter':
+                parse_indicators_xls(files[0].read(), type='quarter', year=year, quarter=num)
+            result_json['msg'] = '指标文件上传完成'
             result_json['process_time'] = str(datetime.datetime.now() - st)
             result_json['status'] = 'success'
             return JsonResponse(data=result_json, safe=False)
@@ -394,12 +416,14 @@ class Worst10DepartmentView(APIView):
 
 class CityRateView(APIView):
 
-    def get(self, request):
+    def get(self, request, year, month):
         st = datetime.datetime.now()
         result_json = dict()
         try:
             rs_list = []
-            qs = StatisticsMonthlyQuality.objects.all()
+            sorted_list = []
+            qs = StatisticsMonthlyQuality.objects.filter(yearNum=year, monthNum=month)
+            cities = City.objects.all()
             for q in qs:
                 d = dict()
                 d['city'] = q.city
@@ -407,7 +431,11 @@ class CityRateView(APIView):
                 d['autoRate'] = str(q.autoRate)
                 d['dealRate'] = str(q.dealRate)
                 rs_list.append(d)
-            result_json['result'] = rs_list
+            for city_obj in cities:
+                for d in rs_list:
+                    if city_obj.city == d['city']:
+                        sorted_list.append(d)
+            result_json['result'] = sorted_list
             result_json['process_time'] = str(datetime.datetime.now() - st)
             result_json['status'] = 'success'
             return JsonResponse(data=result_json, safe=False)

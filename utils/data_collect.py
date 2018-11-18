@@ -11,8 +11,7 @@ import operator
 
 from django.db.models import Count, Avg, Sum
 
-from report.models import MalfunctionData, City, DistrictCity, StatisticsQuarterlyAmount, District, StatisticsQuarterlyReason, \
-    StatisticsQuarterlySpecificDealTime, StatisticsMonthlyQuality
+from report.models import MalfunctionData, City, DistrictCity, StatisticsQuarterlyAmount, District, StatisticsQuarterlyQuality
 
 
 def collect_order_amount(statistics_type, year, quarter, month, day):
@@ -324,39 +323,39 @@ def get_district_over_48h_rate(statistics_type, year, quarter, month, day, begin
 def collect_deal_quality(statistics_type, year=2018, quarter=1, month=1, day=1, begin_datetime="", end_datetime=""):
     result_list = []
     result = dict()
-    try:
-        intime_rate_result = collect_deal_in_time_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        deal_time_result = collect_deal_time(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        ovre48_rate_result = collect_over_48h_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
-        sign_rate_result = StatisticsMonthlyQuality.objects.all()
-        for i in range(1, 6):
-            cities = get_cities_by_district_id(i)
-            district = District.objects.get(id=i).district
-            for city in cities:
-                result_item = dict()
-                result_item['area'] = district
-                result_item['city'] = city
-                for intime_rate_item in intime_rate_result.get('result'):
-                    if intime_rate_item.get("city") == city:
-                        result_item['IntimeRate'] = intime_rate_item.get('IntimeRate')
-                for deal_time_item in deal_time_result.get('result'):
-                    if deal_time_item.get('city') == city:
-                        result_item['AverageTime'] = deal_time_item.get('AverageTime')
-                for ovre48_rate_item in ovre48_rate_result.get('result'):
-                    if ovre48_rate_item.get('city') == city:
-                        result_item['Over48Rate'] = ovre48_rate_item.get("Over48Rate")
-                for sign_rate_item in sign_rate_result:
-                    if sign_rate_item.city == city:
-                        result_item['SignRate'] = str(sign_rate_item.signRate)
-                result_list.append(result_item)
+    # try:
+    intime_rate_result = collect_deal_in_time_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+    deal_time_result = collect_deal_time(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+    ovre48_rate_result = collect_over_48h_rate(statistics_type, year, quarter, month, day, begin_datetime, end_datetime)
+    sign_rate_result = StatisticsQuarterlyQuality.objects.filter(beginDate=begin_datetime, endDate=end_datetime)
+    for i in range(1, 6):
+        cities = get_cities_by_district_id(i)
+        district = District.objects.get(id=i).district
+        for city in cities:
+            result_item = dict()
+            result_item['area'] = district
+            result_item['city'] = city
+            for intime_rate_item in intime_rate_result.get('result'):
+                if intime_rate_item.get("city") == city:
+                    result_item['IntimeRate'] = intime_rate_item.get('IntimeRate')
+            for deal_time_item in deal_time_result.get('result'):
+                if deal_time_item.get('city') == city:
+                    result_item['AverageTime'] = deal_time_item.get('AverageTime')
+            for ovre48_rate_item in ovre48_rate_result.get('result'):
+                if ovre48_rate_item.get('city') == city:
+                    result_item['Over48Rate'] = ovre48_rate_item.get("Over48Rate")
+            for sign_rate_item in sign_rate_result:
+                if sign_rate_item.city == city:
+                    result_item['SignRate'] = str(sign_rate_item.SignRate) if sign_rate_item.SignRate else ''
+            result_list.append(result_item)
 
-        result['status'] = "success"
-        result['result'] = result_list
-        return result
-    except Exception as e:
-        result['status'] = "fail"
-        result['msg'] = str(e)
-        return result
+    result['status'] = "success"
+    result['result'] = result_list
+    return result
+    # except Exception as e:
+    result['status'] = "fail"
+    result['msg'] = str(e)
+    return result
 
 
 def collect_specific_dealtime_amount(statistics_type, year=1, quarter=1, month=1, day=1, begin_datetime="", end_datetime=""):

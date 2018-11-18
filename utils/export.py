@@ -9,7 +9,7 @@ import calendar
 
 from openpyxl import Workbook
 from django.forms import model_to_dict
-
+from collections import OrderedDict
 from report.models import MalfunctionData, StatisticsTop10Ne
 
 
@@ -19,8 +19,9 @@ def export_top10ne(year, month):
     profession_list = ['Net_4G', 'Repeater', 'Net_CDMA', 'Transmission', 'Net_Optical', 'Dynamics', 'Exchange', 'Data']
     professions = ['4G网络', '直放站', 'CDMA网络', '传输专业', '光网络专业', '动力专业', '交换专业', '数据专业']
     wb = Workbook()
+    # 8个专业
     for x in range(0, 8):
-        top10_qs = StatisticsTop10Ne.objects.filter(yearNum=year, monthNum=month, profession=profession_list[x]).values('ne')
+        top10_qs = StatisticsTop10Ne.objects.filter(yearNum=year, monthNum=month, profession=profession_list[x]).order_by('index').values('ne')
         ne_list = []
         for i in top10_qs:
             ne_list.append(i.get('ne'))

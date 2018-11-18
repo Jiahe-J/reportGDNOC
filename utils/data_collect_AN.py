@@ -103,9 +103,10 @@ def get_worst10_department(begin_datetime, end_datetime):
                           FROM 
                           ( SELECT dutyDepartment, COUNT( * ) co FROM report_malfunction_data WHERE isTimeOut = '否' AND distributeTime BETWEEN %s AND %s GROUP BY dutyDepartment ) T1,
                           ( SELECT dutyDepartment, COUNT( * ) totalCo FROM report_malfunction_data WHERE distributeTime BETWEEN %s AND %s GROUP BY dutyDepartment ) T2
-                          WHERE T1.dutyDepartment = T2.dutyDepartment 
-                          ORDER BY inTimeRate,inTimeAmount DESC """, [begin_datetime, end_datetime, begin_datetime, end_datetime])
-        rows = cursor.fetchall()[:10]
+                          WHERE T1.dutyDepartment = T2.dutyDepartment
+                          ORDER BY inTimeRate,inTimeAmount DESC """,
+                            [begin_datetime, end_datetime, begin_datetime, end_datetime])
+        rows = cursor.fetchall()
     result_list = []
     for row in rows:
         d = dict()
@@ -114,5 +115,8 @@ def get_worst10_department(begin_datetime, end_datetime):
         d['intime_amount'] = str(row[2])
         d['timeout_admount'] = str(row[3] - row[2])
         d['intime_rate'] = str(row[1])
-        result_list.append(d)
+        if row[3] - row[2] >= 30:
+            result_list.append(d)
+            if len(result_list) == 10:
+                return result_list
     return result_list

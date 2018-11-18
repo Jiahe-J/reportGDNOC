@@ -13,9 +13,11 @@ import datetime
 import xlrd
 from django.core.exceptions import ObjectDoesNotExist
 from django.db import IntegrityError
+from django.forms import model_to_dict
 from openpyxl import load_workbook
 
-from report.models import MalfunctionData, District, StatisticsMonthlyQuality, MalfunctionLongtime, MalfunctionOnTrack
+from report.models import MalfunctionData, District, StatisticsMonthlyQuality, MalfunctionLongtime, MalfunctionOnTrack, StatisticsQuarterlyQuality, \
+    DistrictCity, City
 from utils.fetch_Ne import *
 
 PRD_1 = ['深圳', '广州', '东莞', '佛山', ]
@@ -121,10 +123,15 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=False):
 
     malfunctionList = []
     rows = sheet.rows
-    head_row = rows.__next__()
-    field_list = []
-    for cell in head_row:
-        field_list.append(cell.value)
+    finding = True
+    while finding:
+        head_row = rows.__next__()
+        field_list = []
+        for cell in head_row:
+            field_list.append(cell.value)
+        if "故障单号" in field_list:
+            finding = False
+    nums = 0
     for row in rows:
         malfunctionData = MalfunctionData()
         malfunctionData.city = city = row[field_list.index('单位')].value
@@ -143,12 +150,15 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=False):
         malfunctionData.department = row[field_list.index('部门')].value
         malfunctionData.malfunctionCity = row[field_list.index('故障地市')].value
         malfunctionData.receiptNumber = row[field_list.index('故障单号')].value
+        print(row[field_list.index('故障单号')].value)
         malfunctionData.receiptSerialNumber = row[field_list.index('工单编号')].value
         malfunctionData.receiptStatus = row[field_list.index('单据状态')].value
         title = row[field_list.index('故障标题')].value
+        if len(title) > 500:
+            title = title[:500]
         if title.__contains__('条告警(含'):
             # print(title)
-            pattern = re.compile(r'(\(\d+条告警)')
+            pattern = re.compile(r'(\d+条告警)')
             index = title.index(re.search(pattern, title).group(1))
             title = title[:index]
         malfunctionData.title = title
@@ -221,26 +231,26 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=False):
         malfunctionData.malfunctionReason = row[field_list.index('故障原因')].value
         # 解决导入重复数据,但插入速度慢
         if has_repeat_data:
-            try:
-                MalfunctionData.objects.get(receiptNumber=row[field_list.index('故障单号')].value)
-                malfunctionData.save()
-            except ObjectDoesNotExist:
+            s = MalfunctionData.objects.filter(receiptNumber=row[field_list.index('故障单号')].value)
+            if s:
+                s.update(**model_to_dict(malfunctionData))
+                # print("重复数据: " + row[field_list.index('故障单号')].value)
+            else:
+                nums += 1
+                # print("新导入行数：" + str(nums))
                 malfunctionList.append(malfunctionData)
-        else:
-            malfunctionList.append(malfunctionData)
-
         if (len(malfunctionList) == 1000):
             try:
                 MalfunctionData.objects.bulk_create(malfunctionList)
                 malfunctionList = []
             except IntegrityError:
                 status = '有重复数据,请选择"替换导入"方式'
-                return status
+                raise Exception(status)
     MalfunctionData.objects.bulk_create(malfunctionList)
 
 
 # 解析"指标.xls"
-def parse_indicators_xls(file_contents):
+def parse_indicators_xls(file_contents, type, year, month=None, quarter=None):
     # f = open('/Users/silenthz/Desktop/数据可视化项目/数据清单/指标.xls', 'rb')
     # file_contents = f.read()
     workbook = xlrd.open_workbook(file_contents=file_contents)
@@ -248,25 +258,41 @@ def parse_indicators_xls(file_contents):
     # 数据行数
     nrows = sheet.nrows
     # result_list = []
-    StatisticsMonthlyQuality.objects.all().delete()
-    for i in range(2, nrows):
+    index = 0
+    finding = True
+    len = 0
+    while finding:
+        city = sheet.cell_value(index, 0)
+        if city == '单位':
+            finding = False
+        index += 1
+
+    for i in range(index, nrows):
         # print(sheet.cell_value(i, 0))
         city = sheet.cell_value(i, 0)
         if city != '??' and city != '无线' and city != '传输' and city != '动力' and city != '交换' and city != '接入网':
-            # dt = dict()
-            # dt['city'] = city
-            # dt['sign_rate'] = sheet.cell_value(i, 4)
-            # dt['auto_rate'] = sheet.cell_value(i, 11)
-            # dt['deal_time'] = sheet.cell_value(i, 18)
-            # result_list.append(dt)
+            if type == 'month':
+                StatisticsMonthlyQuality.objects.get_or_create(
+                    city=city,
+                    yearNum=year,
+                    monthNum=month,
+                    signRate=sheet.cell_value(i, 4),
+                    autoRate=sheet.cell_value(i, 11),
+                    dealRate=sheet.cell_value(i, 18)
+                )
+            elif type == 'quarter':
+                year = int(year)
+                quarter = int(quarter)
+                begin_date = datetime.date(year, (quarter - 1) * 3 + 1, 1)
+                end_date = datetime.date(year, quarter * 3, calendar.mdays[quarter * 3])
+                if city != '合计':
+                    StatisticsQuarterlyQuality.objects.get_or_create(beginDate=begin_date, endDate=end_date, city=city)
+                    s = StatisticsQuarterlyQuality.objects.filter(beginDate=begin_date, endDate=end_date, city=city)
+                    s.update(SignRate=sheet.cell_value(i, 4))
 
-            q_obj = StatisticsMonthlyQuality()
-            q_obj.city = city
-            q_obj.signRate = sheet.cell_value(i, 4)
-            q_obj.autoRate = sheet.cell_value(i, 11)
-            q_obj.dealRate = sheet.cell_value(i, 18)
-            q_obj.save()
-    # return result_list
+                    pass
+                pass
+        pass
 
 
 # 解析长历时工单.xls
@@ -274,22 +300,25 @@ def parse_malfunction_longtime(file_contents):
     # f = open('/Users/silenthz/Desktop/周报数据清单/超72小时工单.xls', 'rb')
     # file_contents = f.read()
 
-    # 删除旧数据
-    MalfunctionLongtime.objects.all().delete()
     workbook = xlrd.open_workbook(file_contents=file_contents)
     sheet = workbook.sheet_by_index(0)
     field_list = []
     item_list = []
     for field in sheet.row(0):
         field_list.append(field.value)
+    index = 0
     for i in range(1, sheet.nrows):
         title = sheet.row(i)[field_list.index('故障标题')].value
+        if len(title) > 500:
+            title = title[:500]
         category = sheet.row(i)[field_list.index('故障种类')].value
         city = sheet.row(i)[field_list.index('故障地市')].value
         processTime = sheet.row(i)[field_list.index('故障历时(分)')].value
         processTime = processTime if processTime else 0
         errorPosition = sheet.row(i)[field_list.index('故障位置')].value
         receiptNumber = sheet.row(i)[field_list.index('故障单号')].value
+        pattern = r".*?-(.*?)-"
+        year = re.search(pattern, receiptNumber).group(1)[:4]
         if title.__contains__('新开') and processTime >= 4320 and city == '广州':
             pass
         elif title.__contains__('遗留跟踪'):
@@ -300,40 +329,51 @@ def parse_malfunction_longtime(file_contents):
             pass
         elif title.__contains__('出入') and city == '省公司':
             pass
-        elif receiptNumber.__contains__('2015') or receiptNumber.__contains__('2016'):
+        elif int(year) < 2017:
             pass
         else:
-            item = MalfunctionLongtime()
-            item.receiptNumber = receiptNumber
-            item.title = title
-            item.category = category
-            item.city = city
-            item.processTime = processTime
-            item.errorPosition = errorPosition
-            # item[0].save()
-            item_list.append(item)
-            if len(item_list) == 2000:
-                MalfunctionLongtime.objects.bulk_create(item_list)
-                item_list = []
-    MalfunctionLongtime.objects.bulk_create(item_list)
+            if index == 0:
+                # 清除旧数据
+                MalfunctionLongtime.objects.all().delete()
+                index += 1
+            MalfunctionLongtime.objects.get_or_create(receiptNumber=receiptNumber,
+                                                      title=title,
+                                                      category=category,
+                                                      city=city,
+                                                      processTime=processTime,
+                                                      errorPosition=errorPosition)
+            # item.title = title
+            # item.category = category
+            # item.city = city
+            # item.processTime = processTime
+            # item.errorPosition = errorPosition
+            # item_list.append(item)
+
+            # if len(item_list) == 2000:
+            #     MalfunctionLongtime.objects.bulk_create(item_list)
+            #     item_list = []
+    # MalfunctionLongtime.objects.bulk_create(item_list)
+
+    # 解析"遗留跟踪单.xls"
 
 
-# 解析"遗留跟踪单.xls"
 def parse_malfunction_track(file_contents):
     """
     是否删除旧数据？
     """
-    MalfunctionOnTrack.objects.all().delete()
-    f = open('/Users/silenthz/Desktop/周报数据清单/遗留跟踪单.xls', 'rb')
-    file_contents = f.read()
+
+    # f = open('/Users/silenthz/Desktop/周报数据清单/遗留跟踪单.xls', 'rb')
+    # file_contents = f.read()
     workbook = xlrd.open_workbook(file_contents=file_contents)
     sheet = workbook.sheet_by_index(0)
     field_list = []
-
+    index = 0
     for field in sheet.row(0):
         field_list.append(field.value)
     for i in range(1, sheet.nrows):
         title = sheet.row(i)[field_list.index('故障标题')].value
+        if len(title) > 500:
+            title = title[:500]
         category = sheet.row(i)[field_list.index('故障种类')].value
         receiptStatus = sheet.row(i)[field_list.index('故障状态')].value
         city = sheet.row(i)[field_list.index('故障地市')].value
@@ -344,6 +384,9 @@ def parse_malfunction_track(file_contents):
         elif city == '省公司' and category.__contains__("IPRAN"):
             pass
         else:
+            if index == 0:
+                MalfunctionOnTrack.objects.all().delete()
+                index += 1
             item = MalfunctionOnTrack.objects.get_or_create(receiptNumber=receiptNumber)
             item[0].title = title
             item[0].category = category

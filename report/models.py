@@ -11,7 +11,7 @@ class MalfunctionData(models.Model):
     receiptNumber = models.CharField(db_column='receiptNumber', primary_key=True, max_length=20)
     receiptSerialNumber = models.CharField(db_column='receiptSerialNumber', max_length=20)
     receiptStatus = models.CharField(db_column='receiptStatus', max_length=10, blank=True, null=True)
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=500)
     category = models.CharField(max_length=200, blank=True, null=True)
     distributeTime = models.DateTimeField(db_column='distributeTime', db_index=True)
     processTime = models.IntegerField(db_column='processTime', blank=True, null=True)
@@ -84,29 +84,7 @@ class StatisticsQuarterlyQuality(models.Model):
 
     class Meta:
         db_table = 'report_statistics_quarterly_quality'
-
-
-class StatisticsQuarterlySpecificDealTime(models.Model):
-    city = models.CharField(max_length=10, blank=True, null=True)
-    beginDate = models.DateField()
-    endDate = models.DateField()
-    amount = models.FloatField(blank=True, null=True)
-    reason = models.CharField(max_length=20, blank=True, null=True)
-
-    class Meta:
-        db_table = 'report_statistics_quarterly_specific_deal_time'
-
-
-class StatisticsQuarterlyReason(models.Model):
-    city = models.CharField(max_length=10, blank=True, null=True)
-    reason = models.CharField(max_length=20, blank=True, null=True)
-    result = models.IntegerField(blank=True, null=True)
-    beginDate = models.DateField()
-    endDate = models.DateField()
-
-    class Meta:
-        # managed = False
-        db_table = 'report_statistics_quarterly_reason'
+        unique_together = ('beginDate', 'endDate', 'city')
 
 
 class StatisticsQuarterlySpecificDealtimeAmount(models.Model):
@@ -140,12 +118,13 @@ class StatisticsMonthlyQuality(models.Model):
 
     class Meta:
         # managed = False
+        unique_together = ('yearNum', 'monthNum', 'city')
         db_table = 'report_statistics_monthly_quality'
 
 
 class MalfunctionLongtime(models.Model):
     receiptNumber = models.CharField(db_column='receiptNumber', primary_key=True, max_length=20)
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=500)
     category = models.CharField(max_length=200, blank=True, null=True)
     city = models.CharField(db_column='city', max_length=50, blank=True, null=True, db_index=True)
     processTime = models.IntegerField(db_column='processTime', blank=True, null=True)
@@ -157,7 +136,7 @@ class MalfunctionLongtime(models.Model):
 
 class MalfunctionOnTrack(models.Model):
     receiptNumber = models.CharField(db_column='receiptNumber', primary_key=True, max_length=20)
-    title = models.CharField(max_length=200)
+    title = models.CharField(max_length=500)
     category = models.CharField(max_length=200, blank=True, null=True)
     receiptStatus = models.CharField(db_column='receiptStatus', max_length=10, blank=True, null=True)
     city = models.CharField(db_column='city', max_length=50, blank=True, null=True, db_index=True)
