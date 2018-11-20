@@ -12,7 +12,7 @@ urlpatterns = [
     path('intimerate/<str:begin_date>/<str:end_date>/', cache_page(60 * 60 * 24)(IntimeRateView.as_view())),
     path('dealtime/<str:begin_date>/<str:end_date>/', cache_page(60 * 60 * 24)(DealtimeView.as_view())),
     path('over48rate/<str:begin_date>/<str:end_date>/', cache_page(60 * 60 * 24)(Over48RateView.as_view())),
-    path('quality/<str:begin_date>/<str:end_date>/', cache_page(60 * 60 * 24)(DealQualityView.as_view())),
+    path('quality/<str:begin_date>/<str:end_date>/', DealQualityView.as_view()),
     path('specific/<str:begin_date>/<str:end_date>/', cache_page(60 * 60 * 24)(SpecificDealtimeAmountView.as_view())),
     path('top10ne/<int:year>/<int:month>', Top10NeView.as_view()),
     path('amountcompare/<int:year>/<int:month>', cache_page(60 * 60 * 24)(SumAmountComparedView.as_view())),

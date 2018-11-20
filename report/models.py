@@ -84,8 +84,7 @@ class StatisticsQuarterlyQuality(models.Model):
 
     class Meta:
         db_table = 'report_statistics_quarterly_quality'
-        unique_together = ('beginDate', 'endDate', 'city')
-
+        # unique_together = ('beginDate', 'endDate', 'city')
 
 class StatisticsQuarterlySpecificDealtimeAmount(models.Model):
     area = models.CharField(max_length=6, blank=True, null=True)
@@ -118,7 +117,7 @@ class StatisticsMonthlyQuality(models.Model):
 
     class Meta:
         # managed = False
-        unique_together = ('yearNum', 'monthNum', 'city')
+        # unique_together = ('yearNum', 'monthNum', 'city')
         db_table = 'report_statistics_monthly_quality'
 
 

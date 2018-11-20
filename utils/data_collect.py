@@ -72,10 +72,6 @@ def collect_order_amount_table(statistics_type, year, quarter=1, month=1, day=1,
     # 构建list
     order_amount_list = []
     try:
-        if statistics_type != 5:
-            msg = collect_order_amount(statistics_type, year, quarter=quarter, month=month, day=day)
-            if msg:
-                return {'msg': msg, 'status': 'fail'}
         # 珠1地区 Pearl River Delta 1
         prd_1_amount = get_district_order_amount(statistics_type=statistics_type, year=year, quarter=quarter, month=month, day=day,
                                                  begin_datetime=begin_datetime, end_datetime=end_datetime)
@@ -106,22 +102,7 @@ def get_district_order_amount(statistics_type, year, quarter, month, day, begin_
             amount_item = dict()
             amount_item['area'] = area
             amount_item['city'] = i
-            if result_list and statistics_type != 5:
-                city_result_list = result_list.filter(city=i)
-                transmission = city_result_list.filter(profession="传输")[0].result if city_result_list.filter(profession="传输") else 0
-                dynamics = city_result_list.filter(profession="动力")[0].result if city_result_list.filter(profession="动力") else 0
-                exchange = city_result_list.filter(profession="交换")[0].result if city_result_list.filter(profession="交换") else 0
-                AN = city_result_list.filter(profession="接入网")[0].result if city_result_list.filter(profession="接入网") else 0
-                wireless = city_result_list.filter(profession="无线")[0].result if city_result_list.filter(profession="无线") else 0
-                sum_amount = transmission + dynamics + exchange + AN + wireless
-                amount_item['transmission'] = transmission
-                amount_item['dynamics'] = dynamics
-                amount_item['exchange'] = exchange
-                amount_item['AN'] = AN
-                amount_item['wireless'] = wireless
-                amount_item['sum'] = sum_amount
-                order_amount.append(amount_item)
-            elif result_list and statistics_type == 5:
+            if result_list:
                 city_result_list = result_list.filter(city=i)
                 transmission = city_result_list.get(profession="传输").get('result', 0)
                 dynamics = city_result_list.get(profession="动力").get('result', 0)
@@ -139,29 +120,24 @@ def get_district_order_amount(statistics_type, year, quarter, month, day, begin_
             else:
                 raise Exception("数据库中无相关数据，时间区间：%s-%s ;类型：%s，;"
                                 "%s-%s-%s 季度：%s" % (begin_datetime, end_datetime, statistics_type, year, month, day, quarter))
-        district_order_amount = sorted(order_amount, key=operator.itemgetter('sum'), reverse=True)
+        # district_order_amount = sorted(order_amount, key=operator.itemgetter('sum'), reverse=True)
         ls = ['transmission', 'dynamics', 'exchange', 'AN', 'wireless', 'sum']
-        for i in district_order_amount:
+        for i in order_amount:
             for p in ls:
                 i[p] = str(i.get(p))
-        order_amount_list += district_order_amount
+        order_amount_list += order_amount
     return order_amount_list
 
 
 # 根据地区id获取城市列表
 def get_cities_by_district_id(district_id):
-    district_city = DistrictCity.objects.filter(district=district_id)
-    city_ids = []
-    for i in district_city:
-        city_ids.append(i.city_id)
     cities = []
-    for i in City.objects.filter(id__in=city_ids):
+    for i in City.objects.filter(districtcity__district=district_id):
         cities.append(i.city)
     return cities
 
-    #  按年度,季度进行工单处理及时率汇总,返回已排序的{区域:[{城市:工单处理及时率}]}字典
 
-
+#  按年度,季度进行工单处理及时率汇总,返回已排序的{区域:[{城市:工单处理及时率}]}字典
 def collect_deal_in_time_rate(statistics_type, year, quarter=1, month=1, day=1, begin_datetime="", end_datetime=""):
     # 构建dict
     deal_in_time_rate_dict = {}

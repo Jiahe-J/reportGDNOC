@@ -116,8 +116,8 @@ DATABASES = {
         # 'USER': 'root',
         # 'PASSWORD': '123456',
         # 测试环境
-        # 'NAME': 'DjangoEcharts_test',
-        'NAME': 'DjangoEcharts',
+        'NAME': 'DjangoEcharts_test',
+        # 'NAME': 'DjangoEcharts',
         'USER': 'root',
         'PASSWORD': '123456',
         'HOST': 'localhost',

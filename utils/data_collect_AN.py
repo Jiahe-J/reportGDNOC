@@ -27,6 +27,7 @@ def get_top10_ne(begin_datetime, end_datetime, profession):
                                         malfunctionSource='集中告警系统报故障',
                                         type='处理',
                                         ne__isnull=False) \
+             .exclude(ne='') \
              .values('city', 'ne') \
              .annotate(distributeAmount=Count('ne')) \
              .order_by('distributeAmount') \

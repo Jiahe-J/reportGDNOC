@@ -111,38 +111,39 @@ class DealQualityView(View):
         # print(begin_date, end_date)
         st = datetime.datetime.now()
         result_json = dict()
-        try:
-            qs = StatisticsQuarterlyQuality.objects.filter(beginDate=begin_date, endDate=end_date, area__isnull=False)
-            if qs:
-                result_json = dict(result=[])
-                for item in qs:
-                    d = model_to_dict(item)
-                    d.pop('id'),
-                    d.pop('beginDate')
-                    d.pop('endDate')
-                    for key in d:
-                        d[key] = str(d[key])
-                    result_json['result'].append(d)
-                    result_json['status'] = 'success'
-            else:
-                result_json = collect_deal_quality(5, 2018, 1, 1, 1, begin_date, end_date)
-                rs = result_json['result']
-                for r in rs:
-                    StatisticsQuarterlyQuality.objects.get_or_create(beginDate=begin_date, endDate=end_date,
-                                                                     city=r.get('city', ''))
-                    StatisticsQuarterlyQuality.objects.filter(beginDate=begin_date, endDate=end_date,
-                                                              city=r.get('city', '')).update(area=r.get('area'),
-                                                                                             IntimeRate=r.get('IntimeRate', ''),
-                                                                                             SignRate=r.get('SignRate', ''),
-                                                                                             Over48Rate=r.get('Over48Rate', ''),
-                                                                                             AverageTime=r.get('AverageTime', ''))
-                    result_json['process_time'] = str(datetime.datetime.now() - st)
-            return JsonResponse(data=result_json, safe=False)
+        # try:
+        qs = StatisticsQuarterlyQuality.objects.filter(beginDate=begin_date, endDate=end_date, area__isnull=False)
+        if qs:
+            result_json = dict(result=[])
+            for item in qs:
+                d = model_to_dict(item)
+                d.pop('id'),
+                d.pop('beginDate')
+                d.pop('endDate')
+                for key in d:
+                    d[key] = str(d[key])
+                result_json['result'].append(d)
+                result_json['status'] = 'success'
+        else:
+            result_json = collect_deal_quality(5, 2018, 1, 1, 1, begin_date, end_date)
+            rs = result_json['result']
+            for r in rs:
+                StatisticsQuarterlyQuality.objects.get_or_create(beginDate=begin_date, endDate=end_date,
+                                                                 city=r.get('city', ''))
+                StatisticsQuarterlyQuality.objects.filter(beginDate=begin_date, endDate=end_date,
+                                                          city=r.get('city', '')) \
+                    .update(area=r.get('area'),
+                            IntimeRate=float(r.get('IntimeRate', '')),
+                            SignRate=float(r.get('SignRate', 0)),
+                            Over48Rate=float(r.get('Over48Rate', '')),
+                            AverageTime=float(r.get('AverageTime', '')))
+                result_json['process_time'] = str(datetime.datetime.now() - st)
+        return JsonResponse(data=result_json, safe=False)
 
-        except Exception as e:
-            result_json['status'] = 'fail'
-            result_json['msg'] = str(e)
-            return JsonResponse(data=result_json, safe=False)
+        # except Exception as e:
+        result_json['status'] = 'fail'
+        result_json['msg'] = str(e)
+        return JsonResponse(data=result_json, safe=False)
 
 
 class SpecificDealtimeAmountView(View):
@@ -422,7 +423,7 @@ class CityRateView(APIView):
         try:
             rs_list = []
             sorted_list = []
-            qs = StatisticsMonthlyQuality.objects.filter(yearNum=year, monthNum=month)
+            qs = StatisticsMonthlyQuality.objects.filter(yearNum=year, monthNum=int(month))
             cities = City.objects.all()
             for q in qs:
                 d = dict()
