@@ -21,7 +21,9 @@ from utils.data_collect import collect_order_amount_table, collect_deal_time, co
 from utils.data_collect_AN import get_top10_ne, get_sum_amount, get_district_malfunction_reason, get_worst10_department
 from utils.data_collect_weekly import collect_longtime_weekly, collect_track_weekly
 from utils.data_parser import parse_indicators_xls, parse_malfunction_data_xlsx, parse_malfunction_longtime, parse_malfunction_track
+from utils.decode_base64img import save_base64
 from utils.export import export_top10ne
+from utils.export_docx_from_tpl import monthly_export_docx, quarterly_export_docx, weekly_export_docx
 
 
 class OrderAmountView(View):
@@ -489,3 +491,72 @@ class Top10NeExportView(APIView):
         response['Content-Disposition'] = "attachment; filename*=utf-8''{}".format(escape_uri_path(filename))
 
         return response
+
+
+class DocxExportView(APIView):
+
+    def get(self, request, type, arg1, arg2):
+        print(type, arg1, arg2)
+        if type == 'month':
+            filepath, filename = monthly_export_docx(int(arg1), int(arg2))
+        if type == 'quarter':
+            filepath, filename = quarterly_export_docx(arg1, arg2)
+        if type == 'week':
+            filepath, filename = weekly_export_docx(arg1, arg2)
+
+        response = FileResponse(open(filepath, 'rb'))
+        response['Content-Type'] = 'application/octet-stream'
+        response['Content-Disposition'] = "attachment; filename*=utf-8''{}".format(escape_uri_path(filename))
+
+        return response
+
+
+class Base64ImageView(APIView):
+    def post(self, request):
+        type = request.POST.get('type', '')
+        if type == 'month':
+            year = request.POST.get('yearNum', '')
+            month = int(request.POST.get('monthNum', ''))
+            monthly_amount = request.POST.get('monthly_amount', '')
+            monthly_reason = request.POST.get('monthly_reason', '')
+            monthly_quality = request.POST.get('monthly_quality', '')
+            if monthly_amount:
+                save_base64(monthly_amount, 'monthly_amount_' + str(year) + '_' + str(month) + '.png')
+            if monthly_reason:
+                save_base64(monthly_reason, 'monthly_reason_' + str(year) + '_' + str(month) + '.png')
+            if monthly_quality:
+                save_base64(monthly_quality, 'monthly_quality_' + str(year) + '_' + str(month) + '.png')
+        if type == 'quarter':
+            beginDate = request.POST.get('beginDate', '')
+            endDate = request.POST.get('endDate', '')
+            quarterly_amount = request.POST.get('quarterly_amount', '')
+            quarterly_intime = request.POST.get('quarterly_intime', '')
+            quarterly_dealtime = request.POST.get('quarterly_dealtime', '')
+            quarterly_over48 = request.POST.get('quarterly_over48', '')
+            quarterly_reason_amount = request.POST.get('quarterly_reason_amount', '')
+            quarterly_specific_amount = request.POST.get('quarterly_specific_amount', '')
+            quarterly_specific_dealtime = request.POST.get('quarterly_specific_dealtime', '')
+            if quarterly_amount:
+                save_base64(quarterly_amount, 'quarterly_amount_' + beginDate + '_' + endDate + '.png')
+            if quarterly_intime:
+                save_base64(quarterly_intime, 'quarterly_intime_' + beginDate + '_' + endDate + '.png')
+            if quarterly_dealtime:
+                save_base64(quarterly_dealtime, 'quarterly_dealtime_' + beginDate + '_' + endDate + '.png')
+            if quarterly_over48:
+                save_base64(quarterly_over48, 'quarterly_over48_' + beginDate + '_' + endDate + '.png')
+            if quarterly_reason_amount:
+                save_base64(quarterly_reason_amount, 'quarterly_reason_amount_' + beginDate + '_' + endDate + '.png')
+            if quarterly_specific_amount:
+                save_base64(quarterly_specific_amount, 'quarterly_specific_amount_' + beginDate + '_' + endDate + '.png')
+            if quarterly_specific_dealtime:
+                save_base64(quarterly_specific_dealtime, 'quarterly_specific_dealtime_' + beginDate + '_' + endDate + '.png')
+        if type == 'week':
+            beginDate = request.POST.get('beginDate', '')
+            endDate = request.POST.get('endDate', '')
+            weekly_track = request.POST.get('weekly_track', '')
+            weekly_longtime = request.POST.get('weekly_longtime', '')
+            if weekly_track:
+                save_base64(weekly_track, 'weekly_track_' + beginDate + '_' + endDate + '.png')
+            if weekly_longtime:
+                save_base64(weekly_longtime, 'weekly_longtime_' + beginDate + '_' + endDate + '.png')
+        return JsonResponse(data={'msg': 'OK'})

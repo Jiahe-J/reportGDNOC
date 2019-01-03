@@ -111,7 +111,7 @@ def parse_malfunction_data_xls(filename=None, file_contents=None, has_repeat_dat
 
 
 # 批量导入excel .xlsx数据
-def parse_malfunction_data_xlsx(filename=None, has_repeat_data=False):
+def parse_malfunction_data_xlsx(filename=None, has_repeat_data=True):
     if filename:
         workbook = load_workbook(filename, read_only=True)
     else:
@@ -199,8 +199,8 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=False):
             if profession == '动力' and malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                 malfunctionData.originProfession = 'Dynamics'
                 malfunctionData.ne = fetch_Dynamic(title)
-
-        malfunctionData.distributeTime = datetime.datetime.strptime(row[field_list.index('派单时间')].value, '%Y-%m-%d %H:%M:%S')
+        # print(str(row[field_list.index('派单时间')].value)[:19])
+        malfunctionData.distributeTime = datetime.datetime.strptime(str(row[field_list.index('派单时间')].value)[:19], '%Y-%m-%d %H:%M:%S')
         processTime = row[field_list.index('处理时长（分钟）')].value
         malfunctionData.processTime = processTime if processTime else 0
         hangTime = row[field_list.index('挂起时长（分钟）')].value
