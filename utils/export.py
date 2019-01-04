@@ -16,11 +16,11 @@ from report.models import MalfunctionData, StatisticsTop10Ne
 def export_top10ne(year, month):
     begin_date = datetime.datetime(year, month, 1, 0, 0, 0)
     end_datetime = datetime.datetime(year, month, calendar.mdays[month], 23, 59, 59)
-    profession_list = ['Net_4G', 'Repeater', 'Net_CDMA', 'Transmission', 'Net_Optical', 'Dynamics', 'Exchange', 'Data']
-    professions = ['4G网络', '直放站', 'CDMA网络', '传输专业', '光网络专业', '动力专业', '交换专业', '数据专业']
+    profession_list = ['Net_4G', 'Repeater', 'Net_CDMA', 'Transmission', 'Net_Optical', 'Dynamics', 'Exchange', 'Data', 'Wifi']
+    professions = ['4G网络', '直放站', 'CDMA网络', '传输专业', '光网络专业', '动力专业', '交换专业', '数据专业', 'WIFI']
     wb = Workbook()
-    # 8个专业
-    for x in range(0, 8):
+    # 9个专业
+    for x in range(0, len(profession_list)):
         top10_qs = StatisticsTop10Ne.objects.filter(yearNum=year, monthNum=month, profession=profession_list[x]).order_by('index').values('ne')
         ne_list = []
         for i in top10_qs:

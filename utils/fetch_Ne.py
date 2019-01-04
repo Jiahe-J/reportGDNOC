@@ -20,6 +20,12 @@ def fetch_4G(title):
         if res:
             ne = res.group(2)
             return ne
+    elif title.__contains__('高频小区退服站点：'):
+        pattern = re.compile(r'(高频小区退服站点：)?(.*?)(【.*】)')
+        res = re.search(pattern, title)
+        if res:
+            ne = res.group(2)
+            return ne
     else:
         return ""
 
@@ -86,7 +92,7 @@ qs = MalfunctionData.objects.filter(originProfession='光网络', malfunctionSou
 
 
 def fetch_OpticalNetwork(title):
-    pattern = re.compile(r'(.*Ne=)(.*?)(【.*|$)')
+    pattern = re.compile(r'(.*Ne=)(.*?)((【.*|$)|(\(\d+条.*))')
     ne = re.search(pattern, title)
     if ne:
         return ne.group(2)
@@ -100,7 +106,7 @@ qs = MalfunctionData.objects.filter(Q(category__contains='交换接入网') | Q(
 
 
 def fetch_SwitchNetwork(title):
-    if title.__contains__('Ne=') and not title.__contains__('网元号'):
+    if title.__contains__('Ne='):  # and not title.__contains__('网元号'):
         pattern = re.compile(r'(.*Ne=)(.*?)/')
         ne = re.search(pattern, title)
         if ne:
@@ -116,7 +122,7 @@ def fetch_SwitchNetwork(title):
         pattern = re.compile(r'(.*?:)(.*?):.*')
         ne = re.search(pattern, title)
         if ne:
-            return ne.group(2)
+            return ne.group(2).strip()
         return ''
 
 
@@ -158,11 +164,22 @@ def fetch_Dynamic(title):
         return ''
 
 
+# 数据专业
 def fetch_DataNetwork(title):
-    pattern = re.compile(r'(.*Ne=)(.*?)(/|SW断网故障|$)')
+    pattern = re.compile(r'(.*Ne=)(.*?)(/|SW断网故障|$|(\(\d条.*))')
     ne = re.search(pattern, title)
     if ne:
         return ne.group(2)
+    else:
+        return ''
+
+
+# WIFI专业
+def fetch_WIFI(title):
+    pattern = re.compile(r'(.*)(—AP（WLAN）)')
+    ne = re.search(pattern, title)
+    if ne:
+        return ne.group(1)
     else:
         return ''
 
@@ -185,4 +202,5 @@ def fetch_DataNetwork(title):
 # pattern = re.compile(r'(.*基站断站：?|.*小区退服：|【VIP站点】)?(.*?)—eNodeB—(.*)')
 # ne = re.search(pattern, title)
 # print(ne.groups())
-
+if __name__ == '__main__':
+    print(fetch_WIFI('ZS-WG-KJZ-0001—AP（WLAN）—AP无法连通告警'))

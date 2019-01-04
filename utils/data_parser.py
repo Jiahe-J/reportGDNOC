@@ -158,7 +158,7 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=True):
             title = title[:500]
         if title.__contains__('条告警(含'):
             # print(title)
-            pattern = re.compile(r'(\d+条告警)')
+            pattern = re.compile(r'(\(\d+条告警)')
             index = title.index(re.search(pattern, title).group(1))
             title = title[:index]
         malfunctionData.title = title
@@ -196,12 +196,18 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=True):
                 malfunctionData.originProfession = 'Data'
                 if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                     malfunctionData.ne = fetch_DataNetwork(title)
+            elif category.__contains__('WLAN网络'):
+                malfunctionData.originProfession = 'Wifi'
+                if malfunctionSource == '集中告警系统报故障' and mtype == '处理':
+                    malfunctionData.ne = fetch_WIFI(title)
             if profession == '动力' and malfunctionSource == '集中告警系统报故障' and mtype == '处理':
                 malfunctionData.originProfession = 'Dynamics'
                 malfunctionData.ne = fetch_Dynamic(title)
         # print(str(row[field_list.index('派单时间')].value)[:19])
         malfunctionData.distributeTime = datetime.datetime.strptime(str(row[field_list.index('派单时间')].value)[:19], '%Y-%m-%d %H:%M:%S')
         processTime = row[field_list.index('处理时长（分钟）')].value
+        if processTime:
+            malfunctionData.distributeTime += datetime.timedelta(minutes=processTime)
         malfunctionData.processTime = processTime if processTime else 0
         hangTime = row[field_list.index('挂起时长（分钟）')].value
         malfunctionData.hangTime = hangTime if hangTime else 0
@@ -246,7 +252,8 @@ def parse_malfunction_data_xlsx(filename=None, has_repeat_data=True):
             except IntegrityError:
                 status = '有重复数据,请选择"替换导入"方式'
                 raise Exception(status)
-    MalfunctionData.objects.bulk_create(malfunctionList)
+    if malfunctionList:
+        MalfunctionData.objects.bulk_create(malfunctionList)
 
 
 # 解析"指标.xls"

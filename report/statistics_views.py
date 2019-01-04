@@ -201,7 +201,7 @@ class Top10NeView(View):
         st = datetime.datetime.now()
         result_json = dict()
         try:
-            profession_list = ['Net_4G', 'Repeater', 'Net_CDMA', 'Transmission', 'Net_Optical', 'Dynamics', 'Exchange', 'Data']
+            profession_list = ['Net_4G', 'Repeater', 'Net_CDMA', 'Transmission', 'Net_Optical', 'Dynamics', 'Exchange', 'Data', 'Wifi']
             rs_dict = dict()
             qs = StatisticsTop10Ne.objects.filter(yearNum=year, monthNum=month)
             if qs:

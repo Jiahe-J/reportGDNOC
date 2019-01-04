@@ -27,25 +27,29 @@ def get_top10_ne(begin_datetime, end_datetime, profession):
                                         malfunctionSource='集中告警系统报故障',
                                         type='处理',
                                         ne__isnull=False) \
-             .exclude(ne='') \
-             .values('city', 'ne') \
-             .annotate(distributeAmount=Count('ne')) \
-             .order_by('distributeAmount') \
-             .reverse()[:10]
+        .exclude(ne='') \
+        .values('city', 'ne') \
+        .annotate(distributeAmount=Count('ne')) \
+        .order_by('distributeAmount') \
+        .reverse()
     rs_list = []
     last_amount = 0
     index = 0
     for q in qs:
-        if q.get('distributeAmount', '') != last_amount:
-            index += 1
-        item = dict(
-            index=index,
-            city=q.get('city', ''),
-            ne=q.get('ne', ''),
-            distributeAmount=str(q.get('distributeAmount'))
-        )
-        last_amount = q.get('distributeAmount')
-        rs_list.append(item)
+        if q.get('distributeAmount', '') == last_amount or len(rs_list) < 10:
+
+            if q.get('distributeAmount', '') != last_amount:
+                index += 1
+            item = dict(
+                index=index,
+                city=q.get('city', ''),
+                ne=q.get('ne', ''),
+                distributeAmount=str(q.get('distributeAmount'))
+            )
+            last_amount = q.get('distributeAmount')
+            rs_list.append(item)
+        else:
+            break
     rs_dict = {profession: rs_list}
 
     return rs_dict
