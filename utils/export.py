@@ -19,14 +19,18 @@ def export_top10ne(year, month):
     profession_list = ['Net_4G', 'Repeater', 'Net_CDMA', 'Transmission', 'Net_Optical', 'Dynamics', 'Exchange', 'Data', 'Wifi']
     professions = ['4G网络', '直放站', 'CDMA网络', '传输专业', '光网络专业', '动力专业', '交换专业', '数据专业', 'WIFI']
     wb = Workbook()
+    data_dicts = []
     # 9个专业
     for x in range(0, len(profession_list)):
         top10_qs = StatisticsTop10Ne.objects.filter(yearNum=year, monthNum=month, profession=profession_list[x]).order_by('index').values('ne')
         ne_list = []
         for i in top10_qs:
             ne_list.append(i.get('ne'))
-        data_qs = MalfunctionData.objects.filter(distributeTime__range=(begin_date, end_datetime), ne__in=ne_list)
-        data_dicts = list(map(lambda x: model_to_dict(x), data_qs))
+        for ne in ne_list:
+            data_model = MalfunctionData.objects.filter(distributeTime__range=(begin_date, end_datetime), ne=ne)
+            data_dicts += list(map(lambda x: model_to_dict(x), data_model))
+        # data_qs = MalfunctionData.objects.filter(distributeTime__range=(begin_date, end_datetime), ne__in=ne_list)
+        # data_dicts = list(map(lambda x: model_to_dict(x), data_qs))
 
         ws = wb.create_sheet(title=professions[x])
         ws.title = professions[x]
