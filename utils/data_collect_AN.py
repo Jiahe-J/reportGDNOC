@@ -24,8 +24,6 @@ from datetime import timedelta, datetime
 def get_top10_ne(begin_datetime, end_datetime, profession):
     qs = MalfunctionData.objects.filter(distributeTime__range=(begin_datetime, end_datetime),
                                         originProfession=profession,
-                                        malfunctionSource='集中告警系统报故障',
-                                        type='处理',
                                         ne__isnull=False) \
         .exclude(ne='') \
         .values('city', 'ne') \
@@ -102,15 +100,15 @@ def get_district_malfunction_reason(begin_date, end_date):
 from django.db import connection
 
 
-def get_worst10_department(begin_datetime, end_datetime):
+def get_worst10_department(begin_datetime, end_datetime, amount=10, level=85):
     with connection.cursor() as cursor:
-        rs = cursor.execute("""SELECT T1.dutyDepartment,ROUND( T1.co / T2.totalCo * 100, 2 ) inTimeRate,T1.co  inTimeAmount ,T2.totalCo
+        cursor.execute("""SELECT T1.dutyDepartment,ROUND( T1.co / T2.totalCo * 100, 2 ) inTimeRate,T1.co  inTimeAmount ,T2.totalCo
                           FROM 
                           ( SELECT dutyDepartment, COUNT( * ) co FROM report_malfunction_data WHERE isTimeOut = '否' AND distributeTime BETWEEN %s AND %s GROUP BY dutyDepartment ) T1,
                           ( SELECT dutyDepartment, COUNT( * ) totalCo FROM report_malfunction_data WHERE distributeTime BETWEEN %s AND %s GROUP BY dutyDepartment ) T2
                           WHERE T1.dutyDepartment = T2.dutyDepartment
-                          ORDER BY inTimeRate,inTimeAmount DESC """,
-                            [begin_datetime, end_datetime, begin_datetime, end_datetime])
+                          ORDER BY inTimeRate DESC """,
+                       [begin_datetime, end_datetime, begin_datetime, end_datetime])
         rows = cursor.fetchall()
     result_list = []
     for row in rows:
@@ -120,8 +118,8 @@ def get_worst10_department(begin_datetime, end_datetime):
         d['intime_amount'] = str(row[2])
         d['timeout_admount'] = str(row[3] - row[2])
         d['intime_rate'] = str(row[1])
-        if row[3] - row[2] >= 30:
-            result_list.append(d)
-            if len(result_list) == 10:
-                return result_list
-    return result_list
+        result_list.append(d)
+    result_list = sorted(result_list, key=lambda x: float(x['intime_rate']))
+    result_list = [x for x in result_list if float(x['timeout_admount']) >= float(amount) and float(x['intime_rate']) <= float(level)]
+
+    return result_list[:10]

@@ -37,6 +37,7 @@ def monthly_export_docx(year, month):
     context['G4_Repeater'] = []
     qs_Net_4G = StatisticsTop10Ne.objects.filter(yearNum=year, monthNum=month, profession='Net_4G')
     qs_Repeater = StatisticsTop10Ne.objects.filter(yearNum=year, monthNum=month, profession='Repeater')
+
     for q in qs_Net_4G:
         d = dict()
         q_dict = model_to_dict(q, exclude=['id', 'yearNum', 'monthNum', 'profession'])
@@ -50,8 +51,11 @@ def monthly_export_docx(year, month):
         for k in q_dict:
             new_k = k + '_' + 'Repeater'
             d[new_k] = q_dict[k]
-        context['G4_Repeater'][i].update(d)
-        i += 1
+        if i < len(context['G4_Repeater']):
+            context['G4_Repeater'][i].update(d)
+            i += 1
+        else:
+            context['G4_Repeater'].append(d)
 
     i = 0
     context['CDMA_Transmission'] = []
@@ -71,8 +75,11 @@ def monthly_export_docx(year, month):
         for k in q_dict:
             new_k = k + '_' + 'Transmission'
             d[new_k] = q_dict[k]
-        context['CDMA_Transmission'][i].update(d)
-        i += 1
+        if i < len(context['CDMA_Transmission']):
+            context['CDMA_Transmission'][i].update(d)
+            i += 1
+        else:
+            context['CDMA_Transmission'].append(d)
 
     i = 0
     context['Optical_Dynamics'] = []
@@ -92,8 +99,11 @@ def monthly_export_docx(year, month):
         for k in q_dict:
             new_k = k + '_' + 'Dynamics'
             d[new_k] = q_dict[k]
-        context['Optical_Dynamics'][i].update(d)
-        i += 1
+        if i < len(context['Optical_Dynamics']):
+            context['Optical_Dynamics'][i].update(d)
+            i += 1
+        else:
+            context['Optical_Dynamics'].append(d)
 
     i = 0
     context['Exchange_Data'] = []
@@ -113,8 +123,11 @@ def monthly_export_docx(year, month):
         for k in q_dict:
             new_k = k + '_' + 'Data'
             d[new_k] = q_dict[k]
-        context['Exchange_Data'][i].update(d)
-        i += 1
+        if i < len(context['Exchange_Data']):
+            context['Exchange_Data'][i].update(d)
+            i += 1
+        else:
+            context['Exchange_Data'].append(d)
 
     # 五、处理及时率差的部门
     context['departments'] = []
@@ -254,7 +267,6 @@ def weekly_export_docx(beginDate, endDate):
     # 图片替换
     tpl.replace_pic('weekly_track.png', 'utils/export_docx/image/weekly_track_' + beginDate + '_' + endDate + '.png')
     tpl.replace_pic('weekly_longtime.png', 'utils/export_docx/image/weekly_longtime_' + beginDate + '_' + endDate + '.png')
-
 
     tpl.render(context)
     tpl.save(filepath)

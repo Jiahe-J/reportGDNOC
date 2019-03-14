@@ -20,7 +20,9 @@ from utils.data_collect import collect_order_amount_table, collect_deal_time, co
     collect_deal_in_time_rate, collect_deal_quality, collect_specific_dealtime_amount
 from utils.data_collect_AN import get_top10_ne, get_sum_amount, get_district_malfunction_reason, get_worst10_department
 from utils.data_collect_weekly import collect_longtime_weekly, collect_track_weekly
-from utils.data_parser import parse_indicators_xls, parse_malfunction_data_xlsx, parse_malfunction_longtime, parse_malfunction_track
+from utils.data_parser import parse_indicators_xls, parse_malfunction_data_xlsx, parse_malfunction_longtime, parse_malfunction_track, \
+    parse_malfunction_data_xlsx_new
+from utils.data_remove_AN import removeTop10Ne, removeWorst10department
 from utils.decode_base64img import save_base64
 from utils.export import export_top10ne
 from utils.export_docx_from_tpl import monthly_export_docx, quarterly_export_docx, weekly_export_docx
@@ -140,11 +142,6 @@ class DealQualityView(View):
                             Over48Rate=float(r.get('Over48Rate', '')),
                             AverageTime=float(r.get('AverageTime', '')))
                 result_json['process_time'] = str(datetime.datetime.now() - st)
-        return JsonResponse(data=result_json, safe=False)
-
-        # except Exception as e:
-        result_json['status'] = 'fail'
-        result_json['msg'] = str(e)
         return JsonResponse(data=result_json, safe=False)
 
 
@@ -333,6 +330,9 @@ class FileUploadView(APIView):
             if filename == 'mf_data':
                 parse_malfunction_data_xlsx(file)
                 result_json['msg'] = '故障数据上传完成'
+            if filename == 'mf_data_new':
+                parse_malfunction_data_xlsx_new(file)
+                result_json['msg'] = '故障数据上传完成'
             if filename == 'longtime_data':
                 parse_malfunction_longtime(file.read())
                 result_json['msg'] = '超72小时工单文件上传完成'
@@ -387,6 +387,10 @@ class Worst10DepartmentView(APIView):
         st = datetime.datetime.now()
         result_json = dict()
         rs_list = []
+        amount = request.query_params.get('amount', '10')
+        level = request.query_params.get('level', '85')
+        if amount != '10' or level != '85':
+            removeWorst10department(year, month)
         try:
             qs = StatisticsMonthlyWorst10Department.objects.filter(yearNum=year, monthNum=month)
             if qs:
@@ -398,7 +402,8 @@ class Worst10DepartmentView(APIView):
                              intime_rate=str(q.intimeRate))
                     rs_list.append(d)
             else:
-                rs_list = get_worst10_department(begin_date, end_date)
+
+                rs_list = get_worst10_department(begin_date, end_date, amount, level)
                 for rs in rs_list:
                     StatisticsMonthlyWorst10Department(yearNum=year, monthNum=month,
                                                        department=rs['department'],
@@ -560,3 +565,17 @@ class Base64ImageView(APIView):
             if weekly_longtime:
                 save_base64(weekly_longtime, 'weekly_longtime_' + beginDate + '_' + endDate + '.png')
         return JsonResponse(data={'msg': 'OK'})
+
+
+class MonthlyRemoveView(APIView):
+    def post(self, request):
+        year = request.POST.get('year', '')
+        month = request.POST.get('month', '')
+        rs = ''
+        if request.POST.get('top10ne', '') == 'y':
+            rs += removeTop10Ne(year, month)
+            print('removeTop10Ne')
+        if request.POST.get('worst10department', '') == 'y':
+            rs += removeWorst10department(year, month)
+            print('removeWorst10department')
+        return JsonResponse(data={'msg': rs})
