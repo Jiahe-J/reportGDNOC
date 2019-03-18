@@ -214,11 +214,10 @@ class Top10NeView(View):
                     rs = get_top10_ne(begin_date, end_date, profession)
                     rs_dict.update(rs)
                     for item in rs[profession]:
-                        value_list = list(item.values())
-                        StatisticsTop10Ne(index=str(value_list[0]),
-                                          city=value_list[1],
-                                          ne=value_list[2],
-                                          amount=value_list[3],
+                        StatisticsTop10Ne(index=str(item.get('index', '')),
+                                          city=item.get('city', ''),
+                                          ne=item.get('ne', ''),
+                                          amount=item.get('distributeAmount', 0),
                                           yearNum=year,
                                           monthNum=month,
                                           profession=profession
